@@ -5,11 +5,12 @@ export default defineManifest({
   name: 'SEO Extension Pro',
   version: '1.0.0',
   description: 'Herramienta completa de análisis SEO con análisis de velocidad, densidad de palabras, social preview y chequeo de enlaces',
-  permissions: [
-    'activeTab',
-    'tabs',
-    'scripting'
-  ],
+  permissions: ['activeTab', 'tabs', 'scripting', 'storage'],
+  optional_host_permissions: ['http://*/*', 'https://*/*'],
+  background: {
+    service_worker: 'src/background.js',
+    type: 'module',
+  },
   action: {
     default_popup: 'index.html',
     default_title: 'SEO Extension Pro'

@@ -1,6 +1,58 @@
 // Content script para obtener datos de la página actual
 // Se ejecuta en el contexto de la página web
 
+import { computeLinkStats, buildScannerValues } from './utils/scannerRow.js'
+
+function extractDetectedTypes(schemas) {
+  const set = new Set()
+  for (const s of schemas || []) {
+    if (s.type === 'Invalid') continue
+    const add = (t) => {
+      if (!t) return
+      const arr = Array.isArray(t) ? t : [t]
+      arr.forEach((z) => set.add(String(z)))
+    }
+    if (s.data) {
+      add(s.data['@type'])
+      if (Array.isArray(s.data['@graph'])) {
+        s.data['@graph'].forEach((n) => add(n && n['@type']))
+      }
+    } else {
+      add(s.type)
+    }
+  }
+  return [...set]
+}
+
+async function fetchHttpMeta(url) {
+  const out = {
+    status: '',
+    statusText: '',
+    contentType: '',
+    xRobotsTag: '',
+    lastModified: '',
+    httpVersion: '',
+    contentLength: '',
+  }
+  try {
+    const r = await fetch(url, {
+      method: 'HEAD',
+      credentials: 'include',
+      cache: 'no-store',
+      redirect: 'follow',
+    })
+    out.status = r.status
+    out.statusText = r.statusText || ''
+    out.contentType = r.headers.get('content-type') || ''
+    out.xRobotsTag = r.headers.get('x-robots-tag') || ''
+    out.lastModified = r.headers.get('last-modified') || ''
+    out.contentLength = r.headers.get('content-length') || ''
+  } catch {
+    /* HEAD puede fallar (CORS, método no permitido) */
+  }
+  return out
+}
+
 function detectSchemas() {
   const schemas = []
   const scripts = document.querySelectorAll('script[type="application/ld+json"]')
@@ -8,20 +60,30 @@ function detectSchemas() {
   scripts.forEach(script => {
     try {
       const json = JSON.parse(script.innerText)
-      // Manejar arrays o objetos simples
       const items = Array.isArray(json) ? json : [json]
-      
-      items.forEach(item => {
+      const flatNodes = []
+      items.forEach((item) => {
+        if (item && Array.isArray(item['@graph'])) {
+          item['@graph'].forEach((n) => flatNodes.push(n))
+        } else {
+          flatNodes.push(item)
+        }
+      })
+
+      flatNodes.forEach((item) => {
+        if (!item || typeof item !== 'object') return
+        const typeRaw = item['@type']
+        const primaryType = Array.isArray(typeRaw) ? typeRaw[0] : typeRaw
         const schema = {
-          type: item['@type'] || 'Unknown',
+          type: primaryType || 'Thing',
           context: item['@context'] || 'https://schema.org',
           data: item,
           isValid: true,
-          errors: []
+          errors: [],
         }
-        
+
         // Validar campos requeridos según el tipo
-        switch(schema.type) {
+        switch (schema.type) {
           case 'Product':
             if (!item.name) schema.errors.push('Falta campo requerido: name')
             if (!item.description) schema.errors.push('Falta campo recomendado: description')
@@ -61,8 +123,12 @@ function detectSchemas() {
 function checkSchemaRecommendations(schemas) {
   const recommendations = []
   const hasProduct = schemas.some(s => s.type === 'Product')
-  const hasReview = schemas.some(s => s.type === 'Review' || s.data.aggregateRating)
-  const hasRating = schemas.some(s => s.data.aggregateRating || s.data.rating)
+  const hasReview = schemas.some(
+    (s) => s.type === 'Review' || (s.data && s.data.aggregateRating),
+  )
+  const hasRating = schemas.some(
+    (s) => s.data && (s.data.aggregateRating || s.data.rating),
+  )
   
   if (hasProduct && !hasReview && !hasRating) {
     recommendations.push({
@@ -1154,7 +1220,7 @@ function calculateScores(data) {
   }
 }
 
-function getPageData() {
+function collectPageData() {
   const data = {
     url: window.location.href,
     title: document.title,
@@ -1248,11 +1314,32 @@ function getPageData() {
   return data
 }
 
+async function getPageDataAsync() {
+  const data = collectPageData()
+  data.linkStats = computeLinkStats(data.links, data.url)
+  try {
+    data.httpMeta = await fetchHttpMeta(data.url)
+  } catch {
+    data.httpMeta = {}
+  }
+  data.scannerValues = buildScannerValues(data, data.httpMeta || {})
+  data.detectedSchemaTypes = extractDetectedTypes(data.schemas)
+  return data
+}
+
 // Escuchar mensajes del popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getPageData') {
-    const data = getPageData()
-    sendResponse(data)
+    ;(async () => {
+      try {
+        const data = await getPageDataAsync()
+        sendResponse(data)
+      } catch (e) {
+        console.error(e)
+        sendResponse({ error: String(e && e.message ? e.message : e) })
+      }
+    })()
+    return true
   }
-  return true // Mantener el canal abierto para respuesta asíncrona
+  return false
 })
