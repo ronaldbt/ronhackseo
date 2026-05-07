@@ -1,8 +1,9 @@
 <template>
   <div class="site-crawl text-sm text-gray-800">
     <p class="mt-0 text-xs leading-relaxed text-slate-600">
-      Rastrea enlaces internos del <strong>mismo dominio</strong> que la pestaña activa (máx.
-      <strong>1000</strong> URLs). Los datos se guardan en el almacenamiento local de la extensión.
+      Rastrea el mismo sitio que la pestaña (máx. <strong>1000</strong> URLs): enlaces en HTML, respaldo por
+      <code>href</code> en texto, <strong>sitemap.xml</strong> (e índices) y equivalencia <strong>www</strong>/apex.
+      Sin motor de render JS (limitación frente a Screaming Frog con navegador integrado).
     </p>
 
     <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
