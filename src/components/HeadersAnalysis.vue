@@ -92,9 +92,9 @@ const totalHeaders = computed(() => {
 
 .summary-section {
   padding: 12px;
-  background: #f9fafb;
+  background: rgba(39, 39, 42, 0.45);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(52, 211, 153, 0.14);
 }
 
 .stats-grid {
@@ -106,20 +106,20 @@ const totalHeaders = computed(() => {
 .stat-card {
   text-align: center;
   padding: 12px;
-  background: white;
+  background: rgba(24, 24, 27, 0.9);
   border-radius: 6px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid rgba(63, 63, 70, 0.85);
 }
 
 .stat-card.total {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: rgba(52, 211, 153, 0.5);
+  background: rgba(6, 78, 59, 0.35);
 }
 
 .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: #f4f4f5;
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -127,7 +127,7 @@ const totalHeaders = computed(() => {
 .stat-label {
   font-size: 11px;
   font-weight: 600;
-  color: #6b7280;
+  color: #a1a1aa;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -149,18 +149,18 @@ const totalHeaders = computed(() => {
 }
 
 .alert-box.critical {
-  background: #fef2f2;
-  border-color: #ef4444;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: #f87171;
 }
 
 .alert-box.warning {
-  background: #fffbeb;
-  border-color: #f59e0b;
+  background: rgba(120, 53, 15, 0.35);
+  border-color: #fbbf24;
 }
 
 .alert-box.info {
-  background: #eff6ff;
-  border-color: #3b82f6;
+  background: rgba(30, 58, 138, 0.35);
+  border-color: #60a5fa;
 }
 
 .alert-icon {
@@ -173,7 +173,7 @@ const totalHeaders = computed(() => {
   flex: 1;
   font-size: 13px;
   line-height: 1.5;
-  color: #1f2937;
+  color: #e4e4e7;
 }
 
 .headers-list {
@@ -183,31 +183,31 @@ const totalHeaders = computed(() => {
 .list-header {
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid rgba(52, 211, 153, 0.15);
 }
 
 .list-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #e4e4e7;
   margin: 0;
 }
 
 .empty-state {
   text-align: center;
   padding: 24px;
-  color: #6b7280;
-  background: #f9fafb;
+  color: #a1a1aa;
+  background: rgba(24, 24, 27, 0.65);
   border-radius: 6px;
 }
 
 .headers-tree {
   max-height: 400px;
   overflow-y: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(52, 211, 153, 0.12);
   border-radius: 6px;
   padding: 8px;
-  background: #fafafa;
+  background: rgba(9, 9, 11, 0.6);
 }
 
 .header-item {
@@ -216,15 +216,15 @@ const totalHeaders = computed(() => {
   gap: 12px;
   padding: 8px 12px;
   margin-bottom: 4px;
-  background: white;
+  background: rgba(24, 24, 27, 0.85);
   border-radius: 4px;
-  border-left: 3px solid #e5e7eb;
+  border-left: 3px solid rgba(63, 63, 70, 0.9);
   transition: all 0.2s;
 }
 
 .header-item:hover {
-  background: #f9fafb;
-  border-left-color: #3b82f6;
+  background: rgba(39, 39, 42, 0.95);
+  border-left-color: #34d399;
 }
 
 .header-item.level-1 {
@@ -260,8 +260,8 @@ const totalHeaders = computed(() => {
 .header-tag {
   flex-shrink: 0;
   padding: 2px 8px;
-  background: #e5e7eb;
-  color: #1f2937;
+  background: rgba(63, 63, 70, 0.9);
+  color: #e4e4e7;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
@@ -288,7 +288,7 @@ const totalHeaders = computed(() => {
 .header-text {
   flex: 1;
   font-size: 13px;
-  color: #1f2937;
+  color: #d4d4d8;
   line-height: 1.4;
   word-break: break-word;
 }

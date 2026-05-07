@@ -1,16 +1,16 @@
 <template>
-  <div class="site-crawl text-sm text-gray-800">
-    <p class="mt-0 text-xs leading-relaxed text-slate-600">
+  <div class="site-crawl text-sm text-zinc-300">
+    <p class="mt-0 text-xs leading-relaxed text-zinc-400">
       Rastrea el mismo sitio que la pestaña (máx. <strong>1000</strong> URLs): enlaces en HTML, respaldo por
       <code>href</code> en texto, <strong>sitemap.xml</strong> (e índices) y equivalencia <strong>www</strong>/apex.
       No ejecuta JavaScript del sitio: las páginas SPA pueden mostrar menos enlaces hasta que el HTML inicial incluya
       rutas o enlaces estáticos.
     </p>
 
-    <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-      <div class="font-mono break-all"><span class="text-slate-500">Origen:</span> {{ seedDisplay }}</div>
+    <div class="mt-3 rounded-lg border border-emerald-500/20 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-300">
+      <div class="font-mono break-all"><span class="text-emerald-600/80">Origen:</span> {{ seedDisplay }}</div>
       <div v-if="state.siteCrawlHost" class="mt-1">
-        <span class="text-slate-500">Dominio:</span> {{ state.siteCrawlHost }}
+        <span class="text-emerald-600/80">Dominio:</span> {{ state.siteCrawlHost }}
       </div>
     </div>
 
@@ -29,7 +29,7 @@
       </button>
       <button
         type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        class="rounded-lg border border-emerald-500/35 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-zinc-200 hover:border-emerald-400/50 hover:bg-zinc-800 disabled:opacity-50"
         :disabled="!state.siteCrawlRunning"
         @click="stopCrawl"
       >
@@ -37,7 +37,7 @@
       </button>
       <button
         type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        class="rounded-lg border border-emerald-500/35 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-zinc-200 hover:border-emerald-400/50 hover:bg-zinc-800"
         :disabled="!state.siteCrawlResults?.length"
         @click="exportCsv"
       >
@@ -45,7 +45,7 @@
       </button>
       <button
         type="button"
-        class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        class="rounded-lg border border-emerald-500/35 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-zinc-200 hover:border-emerald-400/50 hover:bg-zinc-800"
         :disabled="!state.siteCrawlResults?.length && !state.siteCrawlRunning"
         @click="clearStored"
       >
@@ -55,16 +55,16 @@
 
     <div v-if="state.siteCrawlProgress" class="mt-4 space-y-3">
       <div>
-        <div class="mb-1 flex justify-between text-xs text-slate-600">
+        <div class="mb-1 flex justify-between text-xs text-zinc-400">
           <span>URLs visitadas (tope {{ state.siteCrawlProgress.max }})</span>
           <span>
             {{ state.siteCrawlProgress.fetched }} / {{ state.siteCrawlProgress.max }}
             <span v-if="state.siteCrawlRunning" class="text-emerald-600"> · en curso</span>
             <span v-else-if="state.siteCrawlProgress.aborted" class="text-amber-600"> · detenido</span>
-            <span v-else class="text-slate-500"> · fin</span>
+            <span v-else class="text-zinc-500"> · fin</span>
           </span>
         </div>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
           <div
             class="h-full rounded-full bg-emerald-500 transition-all duration-300"
             :style="{ width: progressPct + '%' }"
@@ -72,113 +72,113 @@
         </div>
       </div>
       <div>
-        <div class="mb-1 flex justify-between text-xs text-slate-600">
+        <div class="mb-1 flex justify-between text-xs text-zinc-400">
           <span>Avance de la cola (URLs procesadas / pendientes)</span>
           <span>{{ queueProgressPct }}%</span>
         </div>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
           <div
             class="h-full rounded-full bg-sky-500 transition-all duration-300"
             :style="{ width: queueProgressPct + '%' }"
           />
         </div>
       </div>
-      <p v-if="state.siteCrawlProgress.current" class="truncate font-mono text-[10px] text-slate-500">
+      <p v-if="state.siteCrawlProgress.current" class="truncate font-mono text-[10px] text-zinc-500">
         {{ state.siteCrawlProgress.current }}
       </p>
     </div>
 
     <div
       v-if="completionBanner && !state.siteCrawlRunning"
-      class="mt-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900"
+      class="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-950/55 px-3 py-2 text-xs font-medium text-emerald-200"
     >
       {{ completionBanner }}
     </div>
 
     <div
       v-if="state.siteCrawlSummary && !state.siteCrawlRunning"
-      class="mt-5 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-sm"
+      class="mt-5 rounded-lg border border-emerald-500/20 bg-zinc-900/70 p-3 text-xs shadow-[inset_0_1px_0_rgba(52,211,153,0.06)]"
     >
-      <div class="mb-2 border-b border-slate-100 pb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+      <div class="mb-2 border-b border-emerald-500/15 pb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-500">
         Resumen del rastreo
       </div>
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div><span class="text-slate-500">HTML 200 analizado:</span> {{ state.siteCrawlSummary.htmlOk }}</div>
-        <div><span class="text-slate-500">Títulos duplicados (grupos):</span> {{ state.siteCrawlSummary.duplicateTitleGroups }}</div>
-        <div><span class="text-slate-500">H1 duplicados (grupos):</span> {{ state.siteCrawlSummary.duplicateH1Groups }}</div>
-        <div><span class="text-slate-500">Meta duplicada:</span> {{ state.siteCrawlSummary.duplicateMetaGroups }}</div>
-        <div><span class="text-slate-500">Hallazgos:</span> {{ state.siteCrawlSummary.issuesCount }}</div>
+        <div><span class="text-zinc-500">HTML 200 analizado:</span> {{ state.siteCrawlSummary.htmlOk }}</div>
+        <div><span class="text-zinc-500">Títulos duplicados (grupos):</span> {{ state.siteCrawlSummary.duplicateTitleGroups }}</div>
+        <div><span class="text-zinc-500">H1 duplicados (grupos):</span> {{ state.siteCrawlSummary.duplicateH1Groups }}</div>
+        <div><span class="text-zinc-500">Meta duplicada:</span> {{ state.siteCrawlSummary.duplicateMetaGroups }}</div>
+        <div><span class="text-zinc-500">Hallazgos:</span> {{ state.siteCrawlSummary.issuesCount }}</div>
       </div>
-      <p class="mb-0 mt-2 text-[11px] text-slate-500">
+      <p class="mb-0 mt-2 text-[11px] text-zinc-500">
         El detalle también está en <strong>Problemas</strong> y en la pestaña <strong>Rastreo</strong>.
       </p>
     </div>
 
-    <div class="mt-6 border-t border-slate-200 pt-5">
-      <h3 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">Vista rápida</h3>
-      <p class="mb-2 text-[11px] text-slate-500">Una fila por URL: código, tipo y título detectado.</p>
-      <div class="max-h-48 overflow-auto rounded-lg border border-slate-200 shadow-sm">
+    <div class="mt-6 border-t border-emerald-500/15 pt-5">
+      <h3 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-500">Vista rápida</h3>
+      <p class="mb-2 text-[11px] text-zinc-500">Una fila por URL: código, tipo y título detectado.</p>
+      <div class="max-h-48 overflow-auto rounded-lg border border-emerald-500/20 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
         <table class="w-full min-w-[420px] border-collapse text-left text-[10px]">
-          <thead class="sticky top-0 z-[1] bg-slate-700 text-white">
+          <thead class="sticky top-0 z-[1] bg-zinc-900 text-emerald-100">
             <tr>
-              <th class="border-b border-slate-800 px-2 py-1.5 font-semibold">#</th>
-              <th class="border-b border-slate-800 px-2 py-1.5 font-semibold">Código</th>
-              <th class="border-b border-slate-800 px-2 py-1.5 font-semibold">Tipo</th>
-              <th class="border-b border-slate-800 px-2 py-1.5 font-semibold">URL</th>
-              <th class="border-b border-slate-800 px-2 py-1.5 font-semibold">Título</th>
+              <th class="border-b border-zinc-700 px-2 py-1.5 font-semibold">#</th>
+              <th class="border-b border-zinc-700 px-2 py-1.5 font-semibold">Código</th>
+              <th class="border-b border-zinc-700 px-2 py-1.5 font-semibold">Tipo</th>
+              <th class="border-b border-zinc-700 px-2 py-1.5 font-semibold">URL</th>
+              <th class="border-b border-zinc-700 px-2 py-1.5 font-semibold">Título</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, ri) in state.siteCrawlResults || []" :key="'q-' + row.url + ri" class="odd:bg-white even:bg-slate-50/80">
-              <td class="border-b border-slate-100 px-2 py-1 tabular-nums text-slate-500">{{ ri + 1 }}</td>
-              <td class="border-b border-slate-100 px-2 py-1 tabular-nums">{{ row.status }}</td>
-              <td class="max-w-[100px] truncate border-b border-slate-100 px-2 py-1" :title="row.contentType">{{ shortType(row.contentType) }}</td>
-              <td class="border-b border-slate-100 px-2 py-1 font-mono text-[9px] text-slate-800">{{ row.url }}</td>
-              <td class="max-w-[140px] truncate border-b border-slate-100 px-2 py-1" :title="row.title || quickTitle(row)">
+            <tr v-for="(row, ri) in state.siteCrawlResults || []" :key="'q-' + row.url + ri" class="odd:bg-zinc-900/40 even:bg-zinc-950/60">
+              <td class="border-b border-zinc-800 px-2 py-1 tabular-nums text-zinc-500">{{ ri + 1 }}</td>
+              <td class="border-b border-zinc-800 px-2 py-1 tabular-nums text-zinc-200">{{ row.status }}</td>
+              <td class="max-w-[100px] truncate border-b border-zinc-800 px-2 py-1 text-zinc-300" :title="row.contentType">{{ shortType(row.contentType) }}</td>
+              <td class="border-b border-zinc-800 px-2 py-1 font-mono text-[9px] text-zinc-200">{{ row.url }}</td>
+              <td class="max-w-[140px] truncate border-b border-zinc-800 px-2 py-1 text-zinc-300" :title="row.title || quickTitle(row)">
                 {{ row.title || quickTitle(row) || '—' }}
               </td>
             </tr>
             <tr v-if="!(state.siteCrawlResults || []).length">
-              <td colspan="5" class="px-3 py-6 text-center text-slate-500">Aún no hay URLs.</td>
+              <td colspan="5" class="px-3 py-6 text-center text-zinc-500">Aún no hay URLs.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div class="mt-6 border-t border-slate-200 pt-5">
-      <h3 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">Detalle extendido (export CSV)</h3>
-      <p class="mb-2 text-[11px] text-slate-500">
+    <div class="mt-6 border-t border-emerald-500/15 pt-5">
+      <h3 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-500">Detalle extendido (export CSV)</h3>
+      <p class="mb-2 text-[11px] text-zinc-500">
         Mismas columnas que la pestaña Escáner para documentos HTML con respuesta 200; el resto muestra URL, código y
         motivo en columnas base.
       </p>
-      <div class="max-h-72 overflow-auto rounded-lg border border-slate-200 shadow-sm">
+      <div class="max-h-72 overflow-auto rounded-lg border border-emerald-500/20 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
         <table class="w-max min-w-full border-collapse text-left text-[9px]">
-          <thead class="sticky top-0 z-[1] bg-emerald-700 text-white">
+          <thead class="sticky top-0 z-[1] bg-emerald-950 text-emerald-100">
             <tr>
-              <th class="whitespace-nowrap border-b border-emerald-800 px-1 py-1 font-semibold">#</th>
+              <th class="whitespace-nowrap border-b border-emerald-800/80 px-1 py-1 font-semibold">#</th>
               <th
                 v-for="(col, ci) in SCANNER_COLUMNS"
                 :key="ci"
-                class="whitespace-nowrap border-b border-emerald-800 px-1 py-1 font-semibold"
+                class="whitespace-nowrap border-b border-emerald-800/80 px-1 py-1 font-semibold"
               >
                 {{ col }}
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, ri) in state.siteCrawlResults || []" :key="'d-' + row.url + ri" class="odd:bg-white even:bg-slate-50/80">
-              <td class="border-b border-slate-100 px-1 py-0.5 tabular-nums text-slate-500">{{ ri + 1 }}</td>
+            <tr v-for="(row, ri) in state.siteCrawlResults || []" :key="'d-' + row.url + ri" class="odd:bg-zinc-900/35 even:bg-zinc-950/55">
+              <td class="border-b border-zinc-800 px-1 py-0.5 tabular-nums text-zinc-500">{{ ri + 1 }}</td>
               <td
                 v-for="(cell, ci) in scannerCells(row)"
                 :key="ci"
-                class="max-w-[120px] whitespace-normal break-words border-b border-slate-100 px-1 py-0.5"
+                class="max-w-[120px] whitespace-normal break-words border-b border-zinc-800 px-1 py-0.5 text-zinc-300"
               >
                 {{ cell }}
               </td>
             </tr>
             <tr v-if="!(state.siteCrawlResults || []).length">
-              <td :colspan="SCANNER_COLUMNS.length + 1" class="px-3 py-6 text-center text-slate-500">Aún no hay URLs.</td>
+              <td :colspan="SCANNER_COLUMNS.length + 1" class="px-3 py-6 text-center text-zinc-500">Aún no hay URLs.</td>
             </tr>
           </tbody>
         </table>

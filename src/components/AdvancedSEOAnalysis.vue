@@ -16,7 +16,7 @@
             <span class="metric-value">{{ domDepth.averageDepth }} niveles</span>
           </div>
         </div>
-        <div v-if="domDepth.warning" class="warning-box bg-yellow-50 border-yellow-500 mt-3">
+        <div v-if="domDepth.warning" class="warning-box mt-3 border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="m-0 text-sm">{{ domDepth.warning }}</p>
         </div>
         <div class="score-badge mt-3" :class="getDOMScoreClass(domDepth.score)">
@@ -31,17 +31,17 @@
         <h3 class="analysis-title">Canibalización de Keywords</h3>
       </div>
       <div class="analysis-content">
-        <div v-if="keywordCannibalization.count === 0" class="success-box bg-green-50 border-green-500">
+        <div v-if="keywordCannibalization.count === 0" class="success-box border-emerald-500 bg-emerald-950/35 text-emerald-50">
           <strong>✓ Sin problemas</strong>
           <p>No se detectó canibalización de keywords en el menú de navegación.</p>
         </div>
         <div v-else>
-          <div class="warning-box bg-yellow-50 border-yellow-500 mb-3">
+          <div class="warning-box mb-3 border-amber-500 bg-amber-950/35 text-amber-50">
             <p class="m-0 text-sm">{{ keywordCannibalization.warning }}</p>
           </div>
           <div v-if="keywordCannibalization.duplicates && keywordCannibalization.duplicates.length > 0" class="duplicates-list">
             <details>
-              <summary class="cursor-pointer text-sm font-semibold text-gray-700 mb-2">
+              <summary class="mb-2 cursor-pointer text-sm font-semibold text-zinc-300 hover:text-emerald-400">
                 Ver keywords duplicadas ({{ keywordCannibalization.duplicates.length }})
               </summary>
               <div class="duplicates-grid space-y-2 mt-2">
@@ -53,7 +53,7 @@
                     Aparece {{ dup.count }} veces
                   </div>
                   <div class="duplicate-message">
-                    <p class="text-xs text-gray-600 m-0">{{ dup.message }}</p>
+                    <p class="m-0 text-xs text-zinc-400">{{ dup.message }}</p>
                   </div>
                 </div>
               </div>
@@ -78,9 +78,9 @@ const props = defineProps({
 })
 
 const getDOMScoreClass = (score) => {
-  if (score >= 80) return 'bg-green-100 text-green-900 border-green-500'
-  if (score >= 60) return 'bg-yellow-100 text-yellow-900 border-yellow-500'
-  return 'bg-red-100 text-red-900 border-red-500'
+  if (score >= 80) return 'border-emerald-500 bg-emerald-950/50 text-emerald-200'
+  if (score >= 60) return 'border-amber-500 bg-amber-950/45 text-amber-100'
+  return 'border-red-500 bg-red-950/45 text-red-100'
 }
 </script>
 
@@ -91,9 +91,9 @@ const getDOMScoreClass = (score) => {
 
 .analysis-card {
   padding: 16px;
-  background: #f9fafb;
+  background: rgba(24, 24, 27, 0.65);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(16, 185, 129, 0.18);
 }
 
 .analysis-header {
@@ -102,7 +102,7 @@ const getDOMScoreClass = (score) => {
   gap: 10px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.9);
 }
 
 .analysis-icon {
@@ -112,8 +112,9 @@ const getDOMScoreClass = (score) => {
 .analysis-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #e4e4e7;
   margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .analysis-content {
@@ -135,13 +136,13 @@ const getDOMScoreClass = (score) => {
 
 .metric-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #a1a1aa;
 }
 
 .metric-value {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: #f4f4f5;
 }
 
 .warning-box,
@@ -184,9 +185,9 @@ const getDOMScoreClass = (score) => {
 
 .duplicate-item {
   padding: 10px;
-  background: white;
+  background: rgba(9, 9, 11, 0.55);
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(63, 63, 70, 0.85);
 }
 
 .duplicate-text {
@@ -194,18 +195,18 @@ const getDOMScoreClass = (score) => {
 }
 
 .duplicate-text strong {
-  color: #1f2937;
+  color: #e4e4e7;
   font-size: 13px;
 }
 
 .duplicate-count {
   font-size: 11px;
-  color: #6b7280;
+  color: #a1a1aa;
   margin-bottom: 6px;
 }
 
 .duplicate-message {
   padding-top: 6px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(63, 63, 70, 0.85);
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
-  <div class="scanner-tab text-sm">
+  <div class="scanner-tab text-sm text-zinc-300">
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-      <p class="m-0 text-xs text-slate-600">
+      <p class="m-0 text-xs text-zinc-400">
         Una fila por la página actual. Columnas alineadas con el export <strong>Internos · Todo</strong> y con el rastreo
         del sitio.
       </p>
@@ -15,14 +15,14 @@
       </button>
     </div>
 
-    <div v-if="!canExport" class="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+    <div v-if="!canExport" class="rounded border border-amber-500/50 bg-amber-950/50 px-3 py-2 text-xs text-amber-200">
       No hay fila de escáner. Vuelve a analizar la página con el content script activo (recarga la pestaña si acabas de instalar la extensión).
     </div>
 
-    <div v-else class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div v-else class="overflow-x-auto rounded-lg border border-emerald-500/20 bg-zinc-950/50">
       <table class="w-max min-w-full border-collapse text-left text-[10px]">
         <thead>
-          <tr class="sticky top-0 z-[1] bg-emerald-700 text-white">
+          <tr class="sticky top-0 z-[1] bg-emerald-950 text-emerald-100">
             <th
               v-for="(col, i) in SCANNER_COLUMNS"
               :key="i"
@@ -37,7 +37,7 @@
             <td
               v-for="(cell, i) in values"
               :key="i"
-              class="max-w-[140px] whitespace-normal break-words border-b border-slate-100 px-1.5 py-1 text-gray-800"
+              class="max-w-[140px] whitespace-normal break-words border-b border-zinc-800 px-1.5 py-1 text-zinc-300"
             >
               {{ cell }}
             </td>

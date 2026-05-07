@@ -11,16 +11,16 @@
     <!-- Canonical URL -->
     <div class="analysis-item" v-if="canonical">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="font-semibold text-gray-800">URL Canónica</h4>
+        <h4 class="font-semibold text-zinc-100">URL Canónica</h4>
         <span :class="canonical.exists && canonical.matches ? 'badge-success' : 'badge-warning'">
           {{ canonical.exists && canonical.matches ? '✓ Correcta' : '⚠ Problema' }}
         </span>
       </div>
       <div v-if="canonical.exists">
-        <p class="text-sm text-gray-600 mb-1"><strong>URL Canónica:</strong> {{ canonical.url }}</p>
-        <p class="text-sm text-gray-600"><strong>URL Actual:</strong> {{ canonical.currentURL }}</p>
+        <p class="mb-1 text-sm text-zinc-400"><strong class="text-zinc-300">URL Canónica:</strong> {{ canonical.url }}</p>
+        <p class="text-sm text-zinc-400"><strong class="text-zinc-300">URL Actual:</strong> {{ canonical.currentURL }}</p>
       </div>
-      <div v-else class="warning-box bg-yellow-50 border-yellow-500">
+      <div v-else class="warning-box bg-amber-950/40 border-amber-500/70 text-amber-100">
         <p class="text-sm m-0">{{ canonical.warning }}</p>
       </div>
     </div>
@@ -28,14 +28,14 @@
     <!-- Lang Tag -->
     <div class="analysis-item" v-if="langTag">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="font-semibold text-gray-800">Idioma (Lang Tag)</h4>
+        <h4 class="font-semibold text-zinc-100">Idioma (Lang Tag)</h4>
         <span :class="langTag.matches ? 'badge-success' : 'badge-warning'">
           {{ langTag.matches ? '✓ Coincide' : '⚠ No coincide' }}
         </span>
       </div>
-      <p class="text-sm text-gray-600 mb-1"><strong>Atributo lang:</strong> {{ langTag.htmlLang }}</p>
-      <p class="text-sm text-gray-600 mb-2"><strong>Idioma detectado:</strong> {{ langTag.detectedLang }}</p>
-      <div v-if="langTag.warning" class="warning-box bg-yellow-50 border-yellow-500">
+      <p class="mb-1 text-sm text-zinc-400"><strong class="text-zinc-300">Atributo lang:</strong> {{ langTag.htmlLang }}</p>
+      <p class="mb-2 text-sm text-zinc-400"><strong class="text-zinc-300">Idioma detectado:</strong> {{ langTag.detectedLang }}</p>
+      <div v-if="langTag.warning" class="warning-box bg-amber-950/40 border-amber-500/70 text-amber-100">
         <p class="text-sm m-0">{{ langTag.warning }}</p>
       </div>
     </div>
@@ -43,17 +43,17 @@
     <!-- Stop Words en URL -->
     <div class="analysis-item" v-if="stopWordsURL">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="font-semibold text-gray-800">Stop Words en URL</h4>
+        <h4 class="font-semibold text-zinc-100">Stop Words en URL</h4>
         <span :class="stopWordsURL.isTooLong || stopWordsURL.stopWordsCount > 0 ? 'badge-warning' : 'badge-success'">
           {{ stopWordsURL.isTooLong || stopWordsURL.stopWordsCount > 0 ? '⚠ Mejorable' : '✓ OK' }}
         </span>
       </div>
-      <p class="text-sm text-gray-600 mb-1"><strong>URL:</strong> {{ stopWordsURL.url }}</p>
-      <p class="text-sm text-gray-600 mb-1"><strong>Longitud:</strong> {{ stopWordsURL.urlLength }} caracteres</p>
-      <p v-if="stopWordsURL.stopWordsCount > 0" class="text-sm text-gray-600 mb-2">
-        <strong>Stop words encontradas:</strong> {{ stopWordsURL.stopWords.join(', ') }}
+      <p class="mb-1 text-sm text-zinc-400"><strong class="text-zinc-300">URL:</strong> {{ stopWordsURL.url }}</p>
+      <p class="mb-1 text-sm text-zinc-400"><strong class="text-zinc-300">Longitud:</strong> {{ stopWordsURL.urlLength }} caracteres</p>
+      <p v-if="stopWordsURL.stopWordsCount > 0" class="mb-2 text-sm text-zinc-400">
+        <strong class="text-zinc-300">Stop words encontradas:</strong> {{ stopWordsURL.stopWords.join(', ') }}
       </p>
-      <div v-if="stopWordsURL.warning" class="warning-box bg-yellow-50 border-yellow-500">
+      <div v-if="stopWordsURL.warning" class="warning-box bg-amber-950/40 border-amber-500/70 text-amber-100">
         <p class="text-sm m-0">{{ stopWordsURL.warning }}</p>
       </div>
     </div>
@@ -61,25 +61,25 @@
     <!-- Title Width -->
     <div class="analysis-item" v-if="titleWidth">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="font-semibold text-gray-800">Ancho del Título</h4>
+        <h4 class="font-semibold text-zinc-100">Ancho del Título</h4>
         <span :class="titleWidth.isTooLong ? 'badge-warning' : 'badge-success'">
           {{ titleWidth.isTooLong ? '⚠ Muy largo' : '✓ OK' }}
         </span>
       </div>
-      <p class="text-sm text-gray-600 mb-1"><strong>Título:</strong> {{ titleWidth.title }}</p>
+      <p class="mb-1 text-sm text-zinc-400"><strong class="text-zinc-300">Título:</strong> {{ titleWidth.title }}</p>
       <div class="mt-2 mb-2">
         <div class="width-bar">
           <div class="width-indicator" :style="{ width: Math.min((titleWidth.width / titleWidth.maxWidth) * 100, 100) + '%' }"></div>
         </div>
-        <div class="flex justify-between text-xs text-gray-500 mt-1">
+        <div class="mt-1 flex justify-between text-xs text-zinc-500">
           <span>{{ Math.round(titleWidth.width) }}px</span>
           <span>Máx: {{ titleWidth.maxWidth }}px</span>
         </div>
       </div>
-      <div v-if="titleWidth.truncated" class="text-sm text-gray-500 italic mb-2">
+      <div v-if="titleWidth.truncated" class="mb-2 text-sm italic text-zinc-500">
         Como se verá: "{{ titleWidth.truncated }}"
       </div>
-      <div v-if="titleWidth.warning" class="warning-box bg-yellow-50 border-yellow-500">
+      <div v-if="titleWidth.warning" class="warning-box bg-amber-950/40 border-amber-500/70 text-amber-100">
         <p class="text-sm m-0">{{ titleWidth.warning }}</p>
       </div>
     </div>
@@ -112,27 +112,29 @@ const props = defineProps({
 
 .analysis-item {
   padding: 12px;
-  background: #f9fafb;
+  background: rgba(24, 24, 27, 0.65);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .badge-success {
   padding: 4px 10px;
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(6, 78, 59, 0.55);
+  color: #6ee7b7;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .badge-warning {
   padding: 4px 10px;
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(120, 53, 15, 0.45);
+  color: #fcd34d;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
+  border: 1px solid rgba(245, 158, 11, 0.45);
 }
 
 .warning-box {
@@ -145,7 +147,7 @@ const props = defineProps({
 .width-bar {
   width: 100%;
   height: 8px;
-  background: #e5e7eb;
+  background: #27272a;
   border-radius: 4px;
   overflow: hidden;
   position: relative;

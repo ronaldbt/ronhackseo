@@ -19,7 +19,7 @@
             <span class="stat-value text-red-600">{{ lazyLoading.nonLazyImages }}</span>
           </div>
         </div>
-        <div v-if="lazyLoading.warning" class="warning-box bg-yellow-50 border-yellow-500 mt-3">
+        <div v-if="lazyLoading.warning" class="warning-box mt-3 border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ lazyLoading.warning }}</p>
         </div>
       </div>
@@ -40,14 +40,14 @@
               {{ icon ? '✓' : '✗' }}
             </span>
             <span class="icon-name">{{ getIconName(key) }}</span>
-            <span v-if="icon" class="icon-url text-xs text-gray-500 truncate">{{ icon }}</span>
+            <span v-if="icon" class="icon-url truncate text-xs text-zinc-500">{{ icon }}</span>
           </div>
         </div>
-        <div v-if="favicons.missing && favicons.missing.length > 0" class="warning-box bg-yellow-50 border-yellow-500 mt-3">
+        <div v-if="favicons.missing && favicons.missing.length > 0" class="warning-box mt-3 border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ favicons.warning }}</p>
         </div>
         <div v-if="favicons.icons.favicon" class="serp-preview mt-4">
-          <p class="text-xs font-semibold text-gray-600 mb-2">Vista previa en Google:</p>
+          <p class="mb-2 text-xs font-semibold text-zinc-400">Vista previa en Google:</p>
           <div class="serp-result">
             <div class="serp-icon">
               <img :src="getFaviconUrl(favicons.icons.favicon)" 
@@ -82,7 +82,7 @@
             <span class="stat-value">{{ security.formsCount }}</span>
           </div>
         </div>
-        <div v-if="security.warning" class="warning-box bg-red-50 border-red-500 mt-3">
+        <div v-if="security.warning" class="warning-box mt-3 border-red-500 bg-red-950/40 text-red-100">
           <p class="text-sm m-0 font-semibold">{{ security.warning }}</p>
         </div>
       </div>
@@ -110,7 +110,7 @@
         <div class="ratio-bar mt-3">
           <div class="ratio-fill" :style="{ width: textHTMLRatio.ratio + '%' }"></div>
         </div>
-        <div v-if="textHTMLRatio.warning" class="warning-box bg-yellow-50 border-yellow-500 mt-3">
+        <div v-if="textHTMLRatio.warning" class="warning-box mt-3 border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ textHTMLRatio.warning }}</p>
         </div>
       </div>
@@ -123,10 +123,10 @@
         <span class="stat-value">{{ iframes.count }}</span>
       </div>
       <div class="card-content">
-        <p class="text-sm text-gray-600 mb-2">
-          Se detectaron <strong>{{ iframes.count }}</strong> iframe(s) en la página.
+        <p class="mb-2 text-sm text-zinc-400">
+          Se detectaron <strong class="text-zinc-200">{{ iframes.count }}</strong> iframe(s) en la página.
         </p>
-        <div v-if="iframes.warning" class="warning-box bg-yellow-50 border-yellow-500">
+        <div v-if="iframes.warning" class="warning-box border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ iframes.warning }}</p>
         </div>
       </div>
@@ -151,7 +151,7 @@
             <span class="stat-value text-red-600">{{ nofollowInternal.nofollowCount }}</span>
           </div>
         </div>
-        <div v-if="nofollowInternal.warning" class="warning-box bg-red-50 border-red-500 mt-3">
+        <div v-if="nofollowInternal.warning" class="warning-box mt-3 border-red-500 bg-red-950/40 text-red-100">
           <p class="text-sm m-0 font-semibold">{{ nofollowInternal.warning }}</p>
         </div>
       </div>
@@ -171,11 +171,11 @@
             {{ lang }}
           </span>
         </div>
-        <div v-if="hreflang.warning" class="warning-box bg-yellow-50 border-yellow-500 mt-3">
+        <div v-if="hreflang.warning" class="warning-box mt-3 border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ hreflang.warning }}</p>
         </div>
       </div>
-      <div v-else class="text-sm text-gray-500">
+      <div v-else class="text-sm text-zinc-500">
         No se detectaron etiquetas hreflang. Solo necesario para sitios multi-idioma.
       </div>
     </div>
@@ -189,11 +189,11 @@
         </span>
       </div>
       <div class="card-content">
-        <p class="text-sm text-gray-600 mb-2">
-          Se encontraron <strong>{{ internalAnchors.count }}</strong> enlace(s) con anclas (#).
-          <strong>{{ internalAnchors.validCount }}</strong> apuntan a elementos válidos.
+        <p class="mb-2 text-sm text-zinc-400">
+          Se encontraron <strong class="text-zinc-200">{{ internalAnchors.count }}</strong> enlace(s) con anclas (#).
+          <strong class="text-zinc-200">{{ internalAnchors.validCount }}</strong> apuntan a elementos válidos.
         </p>
-        <div v-if="internalAnchors.warning" class="warning-box bg-yellow-50 border-yellow-500">
+        <div v-if="internalAnchors.warning" class="warning-box border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ internalAnchors.warning }}</p>
         </div>
       </div>
@@ -218,7 +218,7 @@
             <span class="tag-name">{{ getTagName(tag) }}</span>
           </div>
         </div>
-        <div v-if="socialTags.warning" class="warning-box bg-yellow-50 border-yellow-500 mt-3">
+        <div v-if="socialTags.warning" class="warning-box mt-3 border-amber-500 bg-amber-950/35 text-amber-50">
           <p class="text-sm m-0">{{ socialTags.warning }}</p>
         </div>
       </div>
@@ -300,9 +300,10 @@ const getFaviconUrl = (faviconPath) => {
 
 .analysis-card {
   padding: 14px;
-  background: #f9fafb;
+  background: rgba(24, 24, 27, 0.65);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .card-header {
@@ -311,16 +312,16 @@ const getFaviconUrl = (faviconPath) => {
   gap: 10px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 1px solid rgba(63, 63, 70, 0.9);
 }
-
 
 .card-title {
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #e4e4e7;
   margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .badge-success,
@@ -331,26 +332,31 @@ const getFaviconUrl = (faviconPath) => {
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
+  border: 1px solid transparent;
 }
 
 .badge-success {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(6, 78, 59, 0.55);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .badge-warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(120, 53, 15, 0.45);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
 .badge-error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(127, 29, 29, 0.45);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
 }
 
 .badge-info {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(30, 58, 138, 0.45);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.35);
 }
 
 .card-content {
@@ -372,13 +378,13 @@ const getFaviconUrl = (faviconPath) => {
 
 .stat-label {
   font-size: 11px;
-  color: #6b7280;
+  color: #a1a1aa;
 }
 
 .stat-value {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #f4f4f5;
 }
 
 .warning-box {
@@ -398,8 +404,9 @@ const getFaviconUrl = (faviconPath) => {
   align-items: center;
   gap: 8px;
   padding: 6px;
-  background: white;
+  background: rgba(9, 9, 11, 0.55);
   border-radius: 4px;
+  border: 1px solid rgba(63, 63, 70, 0.7);
 }
 
 .icon-status {
@@ -411,6 +418,7 @@ const getFaviconUrl = (faviconPath) => {
   font-size: 12px;
   font-weight: 500;
   flex: 1;
+  color: #d4d4d8;
 }
 
 .icon-url {
@@ -419,9 +427,9 @@ const getFaviconUrl = (faviconPath) => {
 
 .serp-preview {
   padding: 12px;
-  background: white;
+  background: rgba(9, 9, 11, 0.5);
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .serp-result {
@@ -437,15 +445,16 @@ const getFaviconUrl = (faviconPath) => {
 }
 
 .serp-title {
-  font-size: 20px;
-  color: #1a0dab;
+  font-size: 18px;
+  color: #6ee7b7;
   line-height: 1.3;
+  text-shadow: 0 0 24px rgba(16, 185, 129, 0.15);
 }
 
 .ratio-bar {
   width: 100%;
   height: 12px;
-  background: #e5e7eb;
+  background: #27272a;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -464,11 +473,12 @@ const getFaviconUrl = (faviconPath) => {
 
 .language-badge {
   padding: 4px 10px;
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(30, 58, 138, 0.45);
+  color: #93c5fd;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .tags-grid {
@@ -487,11 +497,15 @@ const getFaviconUrl = (faviconPath) => {
 }
 
 .tag-item.found {
-  background: #d1fae5;
+  background: rgba(6, 78, 59, 0.4);
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .tag-item.missing {
-  background: #fee2e2;
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.25);
 }
 
 .tag-status {

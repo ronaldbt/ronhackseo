@@ -6,13 +6,164 @@
   }
 }
 
+/* Shell tipo consola RonHack: neutros oscuros; no tocar clases red-/amber-/yellow-/orange-/rose- */
+.rh-terminal {
+  --rh-bg: #0b1014;
+  --rh-surface: rgba(24, 24, 27, 0.92);
+  --rh-surface-mid: rgba(39, 39, 42, 0.88);
+  --rh-border: rgba(52, 211, 153, 0.16);
+  --rh-border-strong: rgba(52, 211, 153, 0.35);
+  --rh-text: #e4e4e7;
+  --rh-muted: #a1a1aa;
+  --rh-dim: #71717a;
+  --rh-accent: #34d399;
+  --rh-accent-glow: rgba(52, 211, 153, 0.12);
+  background-color: var(--rh-bg);
+  color: var(--rh-text);
+}
+
 @layer components {
   .btn-primary {
     @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200;
   }
-  
+
   .btn-primary:disabled {
     @apply opacity-60 cursor-not-allowed;
     transform: none;
   }
+
+  .rh-panel {
+    @apply rounded-xl border p-5 shadow-lg backdrop-blur-sm transition-all duration-200;
+    border-color: var(--rh-border);
+    background-color: var(--rh-surface);
+    box-shadow:
+      0 4px 28px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(52, 211, 153, 0.06);
+  }
+
+  .rh-panel:hover {
+    border-color: var(--rh-border-strong);
+    box-shadow:
+      0 6px 32px rgba(0, 0, 0, 0.5),
+      0 0 24px rgba(52, 211, 153, 0.06);
+  }
+
+  .rh-panel-title {
+    @apply m-0 mb-5 flex items-center gap-2 border-b border-solid pb-3 text-lg font-semibold;
+    border-color: var(--rh-border);
+    color: var(--rh-text);
+  }
+
+  .rh-nav {
+    @apply flex shrink-0 border-b px-0 text-[11px] font-semibold;
+    border-color: rgba(6, 78, 59, 0.45);
+    background: linear-gradient(180deg, #070b0f 0%, #0a1210 100%);
+    color: var(--rh-muted);
+  }
+
+  .rh-nav-btn {
+    @apply flex-1 border-b-2 border-transparent px-1.5 py-2.5 transition-colors;
+  }
+
+  .rh-nav-btn:hover:not(:disabled) {
+    background-color: rgba(6, 78, 59, 0.35);
+    color: var(--rh-accent);
+  }
+
+  .rh-nav-btn-active {
+    border-color: rgb(52 211 153);
+    color: rgb(167 243 208);
+    text-shadow: 0 0 12px rgba(52, 211, 153, 0.35);
+    background: linear-gradient(180deg, transparent, rgba(52, 211, 153, 0.06));
+  }
+
+  .rh-main-scroll {
+    position: relative;
+    background-color: var(--rh-bg);
+  }
+
+  .rh-main-scroll::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0.045;
+    background-image:
+      linear-gradient(rgba(52, 211, 153, 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52, 211, 153, 0.4) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+
+  .rh-main-scroll > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Overrides de utilidades Tailwind neutras dentro del popup */
+.rh-terminal [class~="bg-white"] {
+  background-color: var(--rh-surface) !important;
+  color: var(--rh-text) !important;
+}
+
+.rh-terminal [class~="bg-gray-50"] {
+  background-color: transparent !important;
+}
+
+.rh-terminal [class~="bg-slate-50"],
+.rh-terminal [class~="bg-slate-100"] {
+  background-color: var(--rh-surface-mid) !important;
+}
+
+.rh-terminal [class~="bg-slate-200"] {
+  background-color: rgb(39 39 42) !important;
+  color: var(--rh-text) !important;
+}
+
+.rh-terminal [class~="text-gray-800"],
+.rh-terminal [class~="text-slate-800"] {
+  color: var(--rh-text) !important;
+}
+
+.rh-terminal [class~="text-gray-700"],
+.rh-terminal [class~="text-slate-700"] {
+  color: #d4d4d8 !important;
+}
+
+.rh-terminal [class~="text-gray-600"],
+.rh-terminal [class~="text-slate-600"] {
+  color: var(--rh-muted) !important;
+}
+
+.rh-terminal [class~="text-gray-500"],
+.rh-terminal [class~="text-slate-500"] {
+  color: var(--rh-dim) !important;
+}
+
+.rh-terminal [class~="border-gray-100"],
+.rh-terminal [class~="border-gray-200"],
+.rh-terminal [class~="border-slate-100"],
+.rh-terminal [class~="border-slate-200"] {
+  border-color: rgba(63, 63, 70, 0.85) !important;
+}
+
+.rh-terminal [class~="text-indigo-600"] {
+  color: var(--rh-accent) !important;
+}
+
+.rh-terminal [class~="border-indigo-600"] {
+  border-color: rgb(52 211 153) !important;
+}
+
+.rh-terminal [class~="text-indigo-700"] {
+  color: rgb(167 243 208) !important;
+}
+
+/* Filas de tabla alternas (Tailwind odd:/even:) */
+.rh-terminal [class*="odd:bg-white"] {
+  background-color: rgba(39, 39, 42, 0.55) !important;
+}
+
+.rh-terminal [class*="even:bg-slate-50"] {
+  background-color: rgba(24, 24, 27, 0.45) !important;
 }

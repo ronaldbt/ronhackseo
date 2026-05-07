@@ -10,7 +10,7 @@
               cy="21"
               r="15.91549430918954"
               fill="transparent"
-              stroke="#e5e7eb"
+              stroke="#3f3f46"
               stroke-width="3"
             />
             <circle
@@ -58,9 +58,9 @@
         <span class="overall-label">Puntuación General</span>
         <span class="overall-value">{{ overallScore }}</span>
         <div v-if="explanations" class="overall-explanation">
-          <p v-if="overallScore >= 80" class="text-sm mt-2">Excelente trabajo. Tu sitio está muy bien optimizado.</p>
-          <p v-else-if="overallScore >= 60" class="text-sm mt-2">Buen rendimiento general con oportunidades de mejora.</p>
-          <p v-else class="text-sm mt-2">Necesita mejoras significativas. Revisa las recomendaciones arriba.</p>
+          <p v-if="overallScore >= 80" class="mt-2 text-sm text-zinc-300">Excelente trabajo. Tu sitio está muy bien optimizado.</p>
+          <p v-else-if="overallScore >= 60" class="mt-2 text-sm text-zinc-300">Buen rendimiento general con oportunidades de mejora.</p>
+          <p v-else class="mt-2 text-sm text-zinc-300">Necesita mejoras significativas. Revisa las recomendaciones arriba.</p>
         </div>
       </div>
     </div>
@@ -185,11 +185,12 @@ const overallClass = computed(() => {
   font-weight: 700;
   line-height: 1;
   display: block;
+  color: #f4f4f5;
 }
 
 .donut-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #a1a1aa;
   display: block;
 }
 
@@ -201,13 +202,13 @@ const overallClass = computed(() => {
 .score-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #e4e4e7;
   margin: 0 0 4px 0;
 }
 
 .score-description {
   font-size: 12px;
-  color: #6b7280;
+  color: #a1a1aa;
   margin: 0 0 12px 0;
 }
 
@@ -220,19 +221,19 @@ const overallClass = computed(() => {
 .issues-box {
   margin-bottom: 10px;
   padding: 10px;
-  background: #f9fafb;
+  background: rgba(24, 24, 27, 0.75);
   border-radius: 6px;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid #38bdf8;
 }
 
 .issues-box {
-  border-left-color: #ef4444;
+  border-left-color: #f87171;
 }
 
 .why-title,
 .issues-title {
   font-weight: 600;
-  color: #1f2937;
+  color: #d4d4d8;
   margin-bottom: 6px;
   font-size: 11px;
   text-transform: uppercase;
@@ -243,7 +244,7 @@ const overallClass = computed(() => {
 .issues-list {
   margin: 0;
   padding-left: 16px;
-  color: #4b5563;
+  color: #a1a1aa;
   line-height: 1.6;
 }
 
@@ -256,7 +257,7 @@ const overallClass = computed(() => {
   display: flex;
   justify-content: center;
   padding-top: 20px;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid rgba(52, 211, 153, 0.15);
 }
 
 .overall-badge {
