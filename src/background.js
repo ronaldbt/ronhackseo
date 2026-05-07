@@ -1,5 +1,9 @@
 /** Rastreo del dominio (MV3 service worker): cola + fetch + storage. */
 
+import { SCANNER_COLUMNS } from './constants/scannerColumns.js'
+import { buildPlaceholderScannerRow, buildScannerValuesFromHtml, countH1InHtml } from './utils/scannerRow.js'
+import { analyzeCrawlResults } from './utils/crawlDuplicateAnalysis.js'
+
 const MAX_URLS = 1000
 const DELAY_MS = 150
 const MAX_HTML_BYTES = 2 * 1024 * 1024
@@ -14,6 +18,35 @@ function sleep(ms) {
 
 async function persist(partial) {
   await chrome.storage.local.set(partial)
+}
+
+/** Solo páginas HTML reales: evita tratar .js/.css como HTML por coincidencias sueltas. */
+function isLikelyHtmlDocument(contentType, textHead) {
+  const head = (textHead || '').slice(0, 12000)
+  const ct = (contentType || '').split(';')[0].trim().toLowerCase()
+  if (ct === 'text/html' || ct === 'application/xhtml+xml' || ct.startsWith('text/html')) return true
+  if (
+    ct.startsWith('image/') ||
+    ct === 'application/javascript' ||
+    ct === 'text/javascript' ||
+    ct === 'application/json' ||
+    ct === 'text/css' ||
+    ct.startsWith('font/') ||
+    ct.startsWith('audio/') ||
+    ct.startsWith('video/') ||
+    ct === 'application/octet-stream' ||
+    ct === 'application/wasm' ||
+    ct === 'application/font-woff' ||
+    ct === 'application/font-woff2' ||
+    ct === 'application/vnd.ms-fontobject'
+  ) {
+    return false
+  }
+  if (ct === 'text/plain' || !ct) {
+    if (/^\s*<\?xml\s/i.test(head)) return false
+    return /<\s*html[\s/>]/i.test(head) && (/<\s*head[\s/>]/i.test(head) || /<\s*body[\s/>]/i.test(head))
+  }
+  return false
 }
 
 function sameSiteHostname(hostname, seedHostLower) {
@@ -222,6 +255,8 @@ async function runCrawl(seedUrl) {
     siteCrawlHost: hostLower,
     siteCrawlError: null,
     siteCrawlResults: [],
+    siteCrawlIssues: [],
+    siteCrawlSummary: null,
     siteCrawlProgress: {
       current: seed,
       fetched: 0,
@@ -229,6 +264,8 @@ async function runCrawl(seedUrl) {
       host: hostLower,
       seed,
       max: MAX_URLS,
+      queuePct: 0,
+      finishReason: null,
     },
     siteCrawlStartedAt: Date.now(),
     siteCrawlFinishedAt: null,
@@ -244,6 +281,11 @@ async function runCrawl(seedUrl) {
     let title = ''
     let contentType = ''
     let error = ''
+    let statusText = ''
+    let scannerValues = null
+    let h1Count = 0
+    let crawlRowKind = 'other'
+    let text = ''
 
     try {
       const r = await fetch(url, {
@@ -254,18 +296,36 @@ async function runCrawl(seedUrl) {
       })
       status = r.status
       contentType = r.headers.get('content-type') || ''
+      statusText = r.statusText || ''
 
-      let text = await r.text()
+      text = await r.text()
       if (text.length > MAX_HTML_BYTES) text = text.slice(0, MAX_HTML_BYTES)
 
       const head = text.slice(0, 100000)
-      const isHtml =
-        /text\/html|application\/xhtml\+xml/i.test(contentType) ||
-        /<\s*html[\s>]|<\s*head[\s>]|<\s*body[\s>]|<a\s+[^>]*\bhref\s*=/i.test(head) ||
-        /\bhref\s*=\s*["'][^"']+["']/i.test(head)
+      const isDoc = isLikelyHtmlDocument(contentType, head)
 
-      if (isHtml && status >= 200 && status < 400) {
+      if (isDoc && status === 200) {
         title = extractTitle(text)
+        h1Count = countH1InHtml(text)
+        try {
+          const sv = buildScannerValuesFromHtml(text, url, {
+            status,
+            statusText,
+            contentType,
+            contentLength: r.headers.get('content-length') || '',
+            lastModified: r.headers.get('last-modified') || '',
+            httpVersion: '',
+            xRobotsTag: r.headers.get('x-robots-tag') || '',
+          })
+          if (Array.isArray(sv) && sv.length === SCANNER_COLUMNS.length) {
+            scannerValues = sv
+            crawlRowKind = 'html'
+            if (scannerValues[6]) title = scannerValues[6] || title
+          }
+        } catch (err) {
+          console.warn('[crawl] scanner', url, err)
+        }
+        // Descubrimiento de URLs: no debe depender del escáner de 72 columnas (si el DOM falla, igual hay href en crudo).
         if (!abortFlag && processed.size < MAX_URLS) {
           const domLinks = extractLinksFromDom(text, url, crawlBase)
           const rxLinks = extractLinksFromRegex(text, url, crawlBase)
@@ -275,9 +335,27 @@ async function runCrawl(seedUrl) {
             enqueue(next)
           }
         }
+      } else if (isDoc && status >= 200 && status < 400) {
+        title = extractTitle(text)
+        h1Count = countH1InHtml(text)
       }
     } catch (e) {
       error = String(e?.message || e)
+    }
+
+    if (!scannerValues || scannerValues.length !== SCANNER_COLUMNS.length) {
+      scannerValues = buildPlaceholderScannerRow(url, {
+        status,
+        contentType,
+        statusText,
+        title,
+        error,
+        note:
+          status === 200 && /text\/html/i.test(contentType || '')
+            ? 'Fila resumida: el análisis detallado del HTML no produjo 72 columnas'
+            : '',
+      })
+      crawlRowKind = 'other'
     }
 
     results.push({
@@ -286,7 +364,13 @@ async function runCrawl(seedUrl) {
       title,
       contentType,
       error: error || undefined,
+      scannerValues,
+      h1Count,
+      crawlRowKind,
     })
+
+    const denom = Math.max(1, results.length + queue.length)
+    const queuePct = Math.min(100, Math.round((results.length / denom) * 100))
 
     await persist({
       siteCrawlRunning: true,
@@ -299,16 +383,28 @@ async function runCrawl(seedUrl) {
         host: hostLower,
         seed,
         max: MAX_URLS,
+        queuePct,
+        finishReason: null,
       },
     })
 
     await sleep(DELAY_MS)
   }
 
+  let finishReason = 'exhausted'
+  if (abortFlag) finishReason = 'aborted'
+  else if (queue.length > 0) finishReason = 'limit'
+  else finishReason = 'exhausted'
+
+  const { issues, summary } = analyzeCrawlResults(results)
+  summary.finishReason = finishReason
+
+  // Primero metadatos ligeros: la pestaña Rastreo lee esto aunque el lote de resultados sea grande.
   await persist({
     siteCrawlRunning: false,
     siteCrawlHost: hostLower,
-    siteCrawlResults: results,
+    siteCrawlSummary: summary,
+    siteCrawlIssues: issues,
     siteCrawlProgress: {
       current: null,
       fetched: results.length,
@@ -318,9 +414,14 @@ async function runCrawl(seedUrl) {
       max: MAX_URLS,
       done: true,
       aborted: abortFlag,
+      finishReason,
+      queuePct: 100,
     },
     siteCrawlError: null,
     siteCrawlFinishedAt: Date.now(),
+  })
+  await persist({
+    siteCrawlResults: results,
   })
 }
 
@@ -369,6 +470,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         'siteCrawlError',
         'siteCrawlStartedAt',
         'siteCrawlFinishedAt',
+        'siteCrawlIssues',
+        'siteCrawlSummary',
       ])
       .then(sendResponse)
     return true

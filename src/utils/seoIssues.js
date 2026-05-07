@@ -1,5 +1,5 @@
 /**
- * Genera filas estilo Screaming Frog “Problemas” para la URL analizada (1 página).
+ * Genera filas de “Problemas” para la URL analizada (1 página).
  * urls = 1 y % del total = 100 cuando aplica al documento actual.
  */
 

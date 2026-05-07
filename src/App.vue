@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 680px; max-height: 800px;" class="flex flex-col overflow-hidden bg-gray-50 font-sans">
+  <div style="width: 760px; max-height: 800px;" class="flex flex-col overflow-hidden bg-gray-50 font-sans">
     <header class="flex shrink-0 items-center justify-between bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-4 py-4 text-white shadow-lg">
       <h1 class="m-0 flex items-center gap-2 text-lg font-semibold">
         <MagnifyingGlassIcon class="h-5 w-5" />
@@ -21,7 +21,7 @@
         type="button"
         class="flex-1 border-b-2 border-transparent px-1.5 py-2.5 transition-colors hover:bg-slate-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         :class="activeTab === t.id ? 'border-indigo-600 text-indigo-700' : ''"
-        :disabled="t.id !== 'sitio' && !pageData"
+        :disabled="isTabDisabled(t)"
         @click="activeTab = t.id"
       >
         {{ t.label }}
@@ -38,8 +38,18 @@
         <SiteCrawlTab />
       </div>
 
+      <div v-else-if="activeTab === 'crawlResumen'" class="p-4">
+        <CrawlSummaryTab />
+      </div>
+
+      <div v-else-if="activeTab === 'problemas' && !pageData" class="p-4">
+        <ProblemsTab :page-data="null" />
+      </div>
+
       <div v-else-if="!pageData" class="px-5 py-12 text-center text-gray-500">
-        <p class="m-0 text-base">Haz clic en «Analizar Página» o abre la pestaña <strong>Sitio</strong> para rastrear el dominio.</p>
+        <p class="m-0 text-base">
+          Haz clic en «Analizar Página» o usa <strong>Sitio</strong> / <strong>Rastreo</strong> para el crawl.
+        </p>
       </div>
 
       <div v-else class="space-y-5 p-4">
@@ -222,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { 
   MagnifyingGlassIcon, 
   DocumentTextIcon,
@@ -252,6 +262,7 @@ import StructuredDataTab from './components/StructuredDataTab.vue'
 import ProblemsTab from './components/ProblemsTab.vue'
 import ScannerTab from './components/ScannerTab.vue'
 import SiteCrawlTab from './components/SiteCrawlTab.vue'
+import CrawlSummaryTab from './components/CrawlSummaryTab.vue'
 
 const tabs = [
   { id: 'resumen', label: 'Resumen' },
@@ -259,11 +270,36 @@ const tabs = [
   { id: 'problemas', label: 'Problemas' },
   { id: 'scanner', label: 'Escáner' },
   { id: 'sitio', label: 'Sitio' },
+  { id: 'crawlResumen', label: 'Rastreo' },
 ]
 
 const loading = ref(false)
 const pageData = ref(null)
 const activeTab = ref('sitio')
+const crawlIssueCount = ref(0)
+
+let crawlIssuePoll = null
+onMounted(() => {
+  const tick = async () => {
+    try {
+      const s = await chrome.storage.local.get('siteCrawlIssues')
+      crawlIssueCount.value = Array.isArray(s.siteCrawlIssues) ? s.siteCrawlIssues.length : 0
+    } catch {
+      crawlIssueCount.value = 0
+    }
+  }
+  void tick()
+  crawlIssuePoll = setInterval(tick, 1200)
+})
+onUnmounted(() => {
+  if (crawlIssuePoll) clearInterval(crawlIssuePoll)
+})
+
+function isTabDisabled(tab) {
+  if (tab.id === 'sitio' || tab.id === 'crawlResumen') return false
+  if (tab.id === 'problemas') return !pageData.value && crawlIssueCount.value === 0
+  return !pageData.value
+}
 
 function sendMessageToTab(tabId, message) {
   return new Promise((resolve, reject) => {

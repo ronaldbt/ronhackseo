@@ -1,4 +1,4 @@
-/** Columnas alineadas con exportación Screaming Frog (CSV de referencia). */
+/** Columnas del informe extendido (export CSV / tabla detallada). */
 export const SCANNER_COLUMNS = [
   'Dirección',
   'Tipo de contenido',

@@ -2,7 +2,8 @@
   <div class="problems-tab text-sm">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <p class="m-0 text-xs text-slate-600">
-        Problemas derivados del análisis de <strong>esta URL</strong> (no es un rastreo completo como Screaming Frog).
+        Incluye hallazgos del <strong>último rastreo del sitio</strong> (duplicados, 404, etc.) y reglas de
+        <strong>esta URL</strong>.
       </p>
       <div class="flex flex-wrap gap-1 text-[11px] font-semibold">
         <span class="rounded bg-slate-200 px-2 py-0.5 text-slate-800">Problemas {{ summary.problemas }}</span>
@@ -25,7 +26,12 @@
         </thead>
         <tbody>
           <tr v-for="(row, i) in issues" :key="i" class="odd:bg-white even:bg-slate-50/80">
-            <td class="border-b border-slate-100 px-2 py-1.5 text-gray-800">{{ row.nombre }}</td>
+            <td class="border-b border-slate-100 px-2 py-1.5 text-gray-800">
+              <div>{{ row.nombre }}</div>
+              <div v-if="row.detalle" class="mt-0.5 max-w-md truncate font-mono text-[10px] text-slate-500" :title="row.detalle">
+                {{ row.detalle }}
+              </div>
+            </td>
             <td class="border-b border-slate-100 px-2 py-1.5">
               <span class="inline-flex items-center gap-1">
                 <span
@@ -54,14 +60,37 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { buildIssuesFromPageData, summarizeIssues } from '../utils/seoIssues.js'
 
 const props = defineProps({
   pageData: { type: Object, default: null },
 })
 
-const issues = computed(() => buildIssuesFromPageData(props.pageData))
+const crawlIssuesStored = ref([])
+
+let crawlPoll = null
+onMounted(() => {
+  const load = async () => {
+    try {
+      const s = await chrome.storage.local.get('siteCrawlIssues')
+      crawlIssuesStored.value = s.siteCrawlIssues || []
+    } catch {
+      crawlIssuesStored.value = []
+    }
+  }
+  void load()
+  crawlPoll = setInterval(load, 900)
+})
+onUnmounted(() => {
+  if (crawlPoll) clearInterval(crawlPoll)
+})
+
+const issues = computed(() => {
+  const fromPage = buildIssuesFromPageData(props.pageData)
+  const fromCrawl = crawlIssuesStored.value || []
+  return [...fromCrawl, ...fromPage]
+})
 const summary = computed(() => summarizeIssues(issues.value))
 
 function tipoDot(tipo) {

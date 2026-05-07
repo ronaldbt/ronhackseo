@@ -2,7 +2,8 @@
   <div class="scanner-tab text-sm">
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
       <p class="m-0 text-xs text-slate-600">
-        Una fila por la página actual. Columnas alineadas con export <strong>Internos · Todo</strong> (Screaming Frog).
+        Una fila por la página actual. Columnas alineadas con el export <strong>Internos · Todo</strong> y con el rastreo
+        del sitio.
       </p>
       <button
         type="button"
