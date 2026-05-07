@@ -1,4 +1,4 @@
-# SEO Extension Pro
+# RonHack SEO
 
 Una extensión de Chrome moderna para análisis SEO completo, inspirada en SEO One Click pero con funcionalidades mejoradas y desarrollada con tecnologías modernas.
 

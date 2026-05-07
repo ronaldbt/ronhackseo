@@ -2,9 +2,10 @@ import { defineManifest } from '@crxjs/vite-plugin'
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'SEO Extension Pro',
+  name: 'RonHack SEO',
   version: '1.0.0',
-  description: 'Herramienta completa de análisis SEO con análisis de velocidad, densidad de palabras, social preview y chequeo de enlaces',
+  description:
+    'Consola de auditoría SEO: análisis on-page, rastreo de sitio, escáner de columnas, problemas y datos estructurados.',
   permissions: ['activeTab', 'tabs', 'scripting', 'storage'],
   optional_host_permissions: ['http://*/*', 'https://*/*'],
   background: {
@@ -13,7 +14,7 @@ export default defineManifest({
   },
   action: {
     default_popup: 'index.html',
-    default_title: 'SEO Extension Pro'
+    default_title: 'RonHack SEO'
   },
   content_scripts: [
     {

@@ -1,17 +1,48 @@
 <template>
   <div style="width: 760px; max-height: 800px;" class="flex flex-col overflow-hidden bg-gray-50 font-sans">
-    <header class="flex shrink-0 items-center justify-between bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-4 py-4 text-white shadow-lg">
-      <h1 class="m-0 flex items-center gap-2 text-lg font-semibold">
-        <MagnifyingGlassIcon class="h-5 w-5" />
-        SEO Extension Pro
-      </h1>
-      <button
-        class="cursor-pointer rounded-lg border-none bg-white px-4 py-2 text-sm font-semibold text-indigo-600 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-        :disabled="loading"
-        @click="analyze"
-      >
-        {{ loading ? 'Analizando...' : 'Analizar Página' }}
-      </button>
+    <header
+      class="relative shrink-0 overflow-hidden border-b border-emerald-500/45 bg-[#060a0d] px-4 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(52,211,153,0.12)]"
+    >
+      <div
+        class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent"
+      />
+      <div
+        class="pointer-events-none absolute inset-0 opacity-[0.06]"
+        style="
+          background-image: linear-gradient(rgba(52, 211, 153, 0.5) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52, 211, 153, 0.45) 1px, transparent 1px);
+          background-size: 14px 14px;
+        "
+      />
+      <div
+        class="pointer-events-none absolute -right-8 -top-12 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl"
+      />
+      <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.12)_50%)] bg-[length:100%_3px] opacity-[0.15]" />
+      <div class="relative flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <div
+            class="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-emerald-500/40 bg-black/70 font-mono text-sm font-bold leading-none text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+            aria-hidden="true"
+          >
+            <span class="text-emerald-500">&gt;</span><span class="text-cyan-400/90">_</span>
+          </div>
+          <div class="min-w-0">
+            <h1
+              class="rh-title-glow m-0 truncate font-mono text-2xl font-bold leading-tight tracking-tight sm:text-[1.65rem]"
+            >
+              <span class="text-emerald-400">RonHack</span><span class="text-zinc-600"> </span><span class="text-cyan-300">SEO</span>
+            </h1>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="shrink-0 cursor-pointer rounded border border-emerald-500/50 bg-emerald-950/80 px-4 py-2.5 text-sm font-semibold text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,0.15)] transition-all duration-200 hover:border-emerald-400/70 hover:bg-emerald-900/90 hover:text-white hover:shadow-[0_0_22px_rgba(52,211,153,0.28)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none"
+          :disabled="loading"
+          @click="analyze"
+        >
+          {{ loading ? 'Analizando...' : 'Analizar Página' }}
+        </button>
+      </div>
     </header>
 
     <nav class="flex shrink-0 border-b border-slate-200 bg-white text-[11px] font-semibold text-slate-600">
@@ -434,3 +465,20 @@ const analyze = async () => {
 }
 </script>
 
+<style scoped>
+.rh-title-glow {
+  text-shadow:
+    0 0 18px rgba(52, 211, 153, 0.45),
+    0 0 36px rgba(34, 211, 238, 0.12);
+  animation: rh-title-pulse 5s ease-in-out infinite;
+}
+@keyframes rh-title-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+</style>

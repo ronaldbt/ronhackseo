@@ -64,9 +64,9 @@ async function exportPdf() {
   const [{ jsPDF }, autoTableMod] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
   const autoTable = autoTableMod.default
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a2' })
-  doc.setProperties({ title: 'SEO Extension Pro — Escáner', subject: 'Vista Internos' })
+  doc.setProperties({ title: 'RonHack SEO — Escáner', subject: 'Vista Internos' })
   doc.setFontSize(10)
-  doc.text('SEO Extension Pro — Escáner (página actual)', 14, 12)
+  doc.text('RonHack SEO — Escáner (página actual)', 14, 12)
   autoTable(doc, {
     head: [SCANNER_COLUMNS],
     body: [values.value.map((c) => String(c ?? ''))],
