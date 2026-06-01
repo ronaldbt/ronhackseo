@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+chrome-store-upload
+ronhack-seo-v*.zip
 *.local
 
 # Editor / local

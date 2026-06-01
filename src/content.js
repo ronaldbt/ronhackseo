@@ -2,6 +2,7 @@
 // Se ejecuta en el contexto de la página web
 
 import { computeLinkStats, buildScannerValues } from './utils/scannerRow.js'
+import { applyHeaderVisualAudit } from './utils/headerVisualAudit.js'
 
 function extractDetectedTypes(schemas) {
   const set = new Set()
@@ -1324,6 +1325,11 @@ async function getPageDataAsync() {
   }
   data.scannerValues = buildScannerValues(data, data.httpMeta || {})
   data.detectedSchemaTypes = extractDetectedTypes(data.schemas)
+  try {
+    applyHeaderVisualAudit()
+  } catch (e) {
+    console.warn('[RonHack SEO] resaltado de encabezados', e)
+  }
   return data
 }
 
