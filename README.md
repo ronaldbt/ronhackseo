@@ -41,7 +41,7 @@ El proyecto usa `@crxjs/vite-plugin` que permite desarrollo con Hot Module Repla
 ### Estructura del Proyecto
 
 ```
-extensionseo/
+ronhackseo/
 ├── manifest.config.js    # Configuración del manifest de la extensión
 ├── vite.config.js        # Configuración de Vite con crxjs
 ├── src/

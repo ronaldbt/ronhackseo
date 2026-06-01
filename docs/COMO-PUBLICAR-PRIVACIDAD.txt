@@ -2,18 +2,18 @@ POLÍTICA DE PRIVACIDAD — ¿QUÉ ES LA URL?
 
 Chrome Web Store NO acepta un archivo local en tu PC.
 Necesitas una URL PÚBLICA en internet, por ejemplo:
-  https://ronaldbt.github.io/seoextension/privacy-policy.html
+  https://ronaldbt.github.io/ronhackseo/privacy-policy.html
 
 Pasos con GitHub Pages (recomendado, gratis):
 
 1. Sube este repo a GitHub (ya tienes origin configurado).
-2. En GitHub: repo seoextension → Settings → Pages.
+2. En GitHub: repo ronhackseo → Settings → Pages.
 3. Source: Deploy from a branch.
 4. Branch: main  |  Folder: /docs
 5. Guarda. En 1-2 minutos tendrás la URL base:
-     https://TU-USUARIO.github.io/seoextension/
+     https://TU-USUARIO.github.io/ronhackseo/
 6. La URL de privacidad será:
-     https://TU-USUARIO.github.io/seoextension/privacy-policy.html
+     https://TU-USUARIO.github.io/ronhackseo/privacy-policy.html
 7. Pega esa URL en Chrome Web Store → Privacy practices → Privacy policy URL.
 
 Si tienes tu propia web, sube docs/privacy-policy.html ahí y usa esa URL.
