@@ -40,7 +40,7 @@
           :disabled="loading"
           @click="analyze"
         >
-          {{ loading ? 'Analizando...' : 'Analizar Página' }}
+          {{ loading && pageData ? 'Actualizando…' : loading ? 'Analizando…' : 'Re-analizar' }}
         </button>
       </div>
     </header>
@@ -60,7 +60,22 @@
     </nav>
 
     <div class="rh-main-scroll min-h-0 flex-1 overflow-y-auto">
-      <div v-if="loading" class="flex flex-col items-center justify-center px-5 py-16">
+      <div
+        v-if="analysisBanner"
+        class="mx-4 mt-3 rounded-lg border px-3 py-2 text-xs leading-relaxed"
+        :class="analysisBannerClass"
+      >
+        {{ analysisBanner.text }}
+        <button
+          v-if="analysisBanner.showRefresh"
+          type="button"
+          class="ml-2 font-semibold underline hover:no-underline"
+          @click="refreshActiveTab"
+        >
+          Recargar pestaña
+        </button>
+      </div>
+      <div v-if="loading && !pageData" class="flex flex-col items-center justify-center px-5 py-16">
         <div class="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-emerald-400"></div>
         <p class="font-medium text-zinc-400">Analizando página...</p>
       </div>
@@ -73,22 +88,52 @@
         <CrawlSummaryTab />
       </div>
 
+      <div v-else-if="activeTab === 'keywords'" class="p-4">
+        <div class="rh-panel p-4">
+          <h2 class="rh-panel-title m-0 mb-4 border-0 pb-0">
+            <MagnifyingGlassIcon class="h-5 w-5 shrink-0 text-emerald-400" />
+            Keyword Planner
+          </h2>
+          <KeywordsTab :page-data="pageData" :tab-url="activeTabUrl" />
+        </div>
+      </div>
+
+      <div v-else-if="activeTab === 'geo'" class="p-4">
+        <div class="rh-panel p-4">
+          <h2 class="rh-panel-title m-0 mb-4 border-0 pb-0">
+            <GlobeAmericasIcon class="h-5 w-5 shrink-0 text-emerald-400" />
+            SERP Local (gl / hl / uule)
+          </h2>
+          <GeoSerpTab />
+        </div>
+      </div>
+
       <div v-else-if="activeTab === 'problemas' && !pageData" class="p-4">
         <ProblemsTab :page-data="null" />
       </div>
 
+      <div v-else-if="!pageData && analyzeError" class="px-5 py-12 text-center text-zinc-400">
+        <p class="m-0 text-base">{{ analyzeError }}</p>
+      </div>
+
       <div v-else-if="!pageData" class="px-5 py-12 text-center text-zinc-500">
-        <p class="m-0 text-base">
-          Haz clic en «Analizar Página» o usa <strong>Sitio</strong> / <strong>Rastreo</strong> para el crawl.
-        </p>
+        <p class="m-0 text-base">No hay datos de la página activa.</p>
       </div>
 
       <div v-else class="space-y-5 p-4">
-      <div v-show="activeTab === 'resumen'" class="space-y-5">
+      <div v-if="activeTab === 'resumen'" v-memo="[pageData]" class="space-y-5">
       <!-- Score Dashboard -->
       <section v-if="pageData.scores" class="rh-panel">
-        <h2 class="rh-panel-title">Puntuaciones SEO</h2>
         <ScoreDashboard :scores="pageData.scores" :explanations="pageData.scores.explanations" />
+      </section>
+
+      <!-- Resumen tipo SEO One Click -->
+      <section class="rh-panel">
+        <h2 class="rh-panel-title">
+          <InformationCircleIcon class="h-5 w-5 shrink-0 text-emerald-400" />
+          Resumen
+        </h2>
+        <SummaryOverview :page-data="pageData" />
       </section>
 
       <!-- Análisis de Headers -->
@@ -100,25 +145,38 @@
         <HeadersAnalysis :headers-data="pageData.headers" />
       </section>
 
-      <!-- Información básica -->
-      <section class="rh-panel">
-        <h2 class="rh-panel-title">
-          <InformationCircleIcon class="h-5 w-5 shrink-0 text-emerald-400" />
-          Información Básica
+      <!-- Stack tecnológico (Wappalyzer) -->
+      <section class="rh-panel py-3">
+        <h2 class="rh-panel-title mb-2 text-sm">
+          <Cog6ToothIcon class="h-4 w-4 shrink-0 text-emerald-400" />
+          Tecnologías detectadas
         </h2>
-        <div class="grid gap-4">
-          <div>
-            <strong class="mb-2 block text-sm font-semibold text-emerald-400/90">URL:</strong>
-            <p class="m-0 break-words text-xs text-zinc-400">{{ pageData.url }}</p>
-          </div>
-          <div>
-            <strong class="mb-2 block text-sm font-semibold text-emerald-400/90">Título:</strong>
-            <p class="m-0 break-words text-zinc-300">{{ pageData.title || 'No encontrado' }}</p>
-          </div>
-          <div>
-            <strong class="mb-2 block text-sm font-semibold text-emerald-400/90">Meta Description:</strong>
-            <p class="m-0 break-words text-zinc-300">{{ getMeta('description') || 'No encontrada' }}</p>
-          </div>
+        <TechStackPanel :tech-stack="pageData.techStack" />
+      </section>
+
+      <!-- Análisis de contenido (Yoast) -->
+      <section v-if="pageData.text" class="rh-panel py-3">
+        <h2 class="rh-panel-title mb-2 text-sm">
+          <DocumentTextIcon class="h-4 w-4 shrink-0 text-emerald-400" />
+          Legibilidad y contenido
+        </h2>
+        <ContentAnalysisPanel :page-data="pageData" />
+      </section>
+
+      <!-- Schema en resumen -->
+      <section v-if="pageData.detectedSchemaTypes?.length" class="rh-panel py-3">
+        <h2 class="rh-panel-title mb-2 text-sm">
+          <DocumentTextIcon class="h-4 w-4 shrink-0 text-emerald-400" />
+          Datos estructurados
+        </h2>
+        <div class="flex flex-wrap gap-1.5">
+          <span
+            v-for="t in pageData.detectedSchemaTypes"
+            :key="t"
+            class="rounded border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-200"
+          >
+            {{ t }}
+          </span>
         </div>
       </section>
 
@@ -131,13 +189,14 @@
         <AccessibilityAudit :accessibility="pageData.accessibility" />
       </section>
 
-      <!-- Análisis de Velocidad -->
-      <section class="rh-panel" v-if="pageData.performance">
+      <!-- Análisis de Velocidad + Core Web Vitals -->
+      <section class="rh-panel" v-if="pageData.performance || pageData.webVitals">
         <h2 class="rh-panel-title">
           <BoltIcon class="h-5 w-5 shrink-0 text-emerald-400" />
-          Análisis de Velocidad
+          Rendimiento y Core Web Vitals
         </h2>
-        <PerformanceMetrics :performance="pageData.performance" />
+        <WebVitalsPanel v-if="pageData.webVitals" :web-vitals="pageData.webVitals" class="mb-5" />
+        <PerformanceMetrics v-if="pageData.performance" :performance="pageData.performance" />
       </section>
 
       <!-- Análisis SEO Avanzado -->
@@ -186,7 +245,10 @@
       </section>
 
       <!-- Análisis SEO Técnico -->
-      <section v-if="pageData.metaRobots || pageData.canonical || pageData.langTag || pageData.stopWordsURL || pageData.titleWidth" class="rh-panel">
+      <section
+        v-if="pageData.metaRobots || pageData.canonical || pageData.langTag || pageData.stopWordsURL || pageData.titleWidth"
+        class="rh-panel"
+      >
         <h2 class="rh-panel-title">
           <Cog6ToothIcon class="h-5 w-5 shrink-0 text-emerald-400" />
           Análisis SEO Técnico
@@ -231,7 +293,7 @@
       </section>
       </div>
 
-      <div v-show="activeTab === 'schema'" class="space-y-4">
+      <div v-if="activeTab === 'schema'" v-memo="[pageData]" class="space-y-4">
         <div class="rh-panel p-4">
           <StructuredDataTab
             :schemas="pageData.schemas || []"
@@ -250,11 +312,11 @@
         </div>
       </div>
 
-      <div v-show="activeTab === 'problemas'" class="rh-panel p-4">
+      <div v-if="activeTab === 'problemas'" class="rh-panel p-4">
         <ProblemsTab :page-data="pageData" />
       </div>
 
-      <div v-show="activeTab === 'scanner'" class="rh-panel p-4">
+      <div v-if="activeTab === 'scanner'" class="rh-panel p-4">
         <ScannerTab :scanner-values="pageData.scannerValues" />
       </div>
       </div>
@@ -263,7 +325,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { 
   MagnifyingGlassIcon, 
   DocumentTextIcon,
@@ -274,8 +336,10 @@ import {
   Cog6ToothIcon,
   WrenchScrewdriverIcon,
   InformationCircleIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  GlobeAmericasIcon,
 } from '@heroicons/vue/24/outline'
+import SummaryOverview from './components/SummaryOverview.vue'
 import ScoreDashboard from './components/ScoreDashboard.vue'
 import HeadersAnalysis from './components/HeadersAnalysis.vue'
 import SchemaDetector from './components/SchemaDetector.vue'
@@ -294,9 +358,30 @@ import ProblemsTab from './components/ProblemsTab.vue'
 import ScannerTab from './components/ScannerTab.vue'
 import SiteCrawlTab from './components/SiteCrawlTab.vue'
 import CrawlSummaryTab from './components/CrawlSummaryTab.vue'
+import KeywordsTab from './components/KeywordsTab.vue'
+import GeoSerpTab from './components/GeoSerpTab.vue'
+import WebVitalsPanel from './components/WebVitalsPanel.vue'
+import TechStackPanel from './components/TechStackPanel.vue'
+import ContentAnalysisPanel from './components/ContentAnalysisPanel.vue'
+import { calculateScores } from './utils/calculateScores.js'
+import { analyzeHeadersInPage } from './utils/headerAnalysis.js'
+import { requestPageData } from './utils/contentScriptBridge.js'
+import { collectWebVitalsInPage } from './utils/webVitalsCollect.js'
+import {
+  detectSchemasInPage,
+  extractDetectedTypes,
+  checkSchemaRecommendations,
+} from './utils/schemaDetect.js'
+import { detectTechStackInPage } from './utils/techStackDetect.js'
+import {
+  analyzeImageAltInPage,
+  analyzeOutboundLinksInPage,
+} from './utils/pageMediaLinks.js'
 
 const tabs = [
   { id: 'resumen', label: 'Resumen' },
+  { id: 'keywords', label: 'Keywords' },
+  { id: 'geo', label: 'SERP Local' },
   { id: 'schema', label: 'Datos estruct.' },
   { id: 'problemas', label: 'Problemas' },
   { id: 'scanner', label: 'Escáner' },
@@ -306,61 +391,224 @@ const tabs = [
 
 const loading = ref(false)
 const pageData = ref(null)
-const activeTab = ref('sitio')
+const activeTab = ref('resumen')
+const activeTabUrl = ref('')
 const crawlIssueCount = ref(0)
+const analyzeError = ref(null)
+const SESSION_CACHE_KEY = 'ronhackPageCache'
 
 let crawlIssuePoll = null
-onMounted(() => {
+onMounted(async () => {
   const tick = async () => {
     try {
       const s = await chrome.storage.local.get('siteCrawlIssues')
-      crawlIssueCount.value = Array.isArray(s.siteCrawlIssues) ? s.siteCrawlIssues.length : 0
+      const next = Array.isArray(s.siteCrawlIssues) ? s.siteCrawlIssues.length : 0
+      if (crawlIssueCount.value !== next) {
+        crawlIssueCount.value = next
+      }
     } catch {
-      crawlIssueCount.value = 0
+      if (crawlIssueCount.value !== 0) {
+        crawlIssueCount.value = 0
+      }
     }
   }
   void tick()
-  crawlIssuePoll = setInterval(tick, 1200)
+  crawlIssuePoll = setInterval(tick, 5000)
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  activeTabUrl.value = tab?.url || ''
+
+  try {
+    const cached = await chrome.storage.session.get(SESSION_CACHE_KEY)
+    const hit = cached[SESSION_CACHE_KEY]
+    if (hit?.url && hit.url === tab?.url) {
+      pageData.value = hit
+      loading.value = false
+    }
+  } catch {
+    /* ignore */
+  }
+
+  void loadPageData(false)
 })
 onUnmounted(() => {
   if (crawlIssuePoll) clearInterval(crawlIssuePoll)
+  chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+    if (tab?.id) {
+      chrome.tabs.sendMessage(tab.id, { action: 'clearContentHighlight' }).catch(() => {})
+    }
+  })
 })
 
+async function savePageCache(data) {
+  if (!data?.url) return
+  try {
+    await chrome.storage.session.set({ [SESSION_CACHE_KEY]: data })
+  } catch {
+    /* ignore */
+  }
+}
+
 function isTabDisabled(tab) {
-  if (tab.id === 'sitio' || tab.id === 'crawlResumen') return false
+  if (tab.id === 'sitio' || tab.id === 'crawlResumen' || tab.id === 'keywords' || tab.id === 'geo') return false
   if (tab.id === 'problemas') return !pageData.value && crawlIssueCount.value === 0
   return !pageData.value
 }
 
-function sendMessageToTab(tabId, message) {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.sendMessage(tabId, message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message))
-        return
+const analysisBanner = computed(() => {
+  if (!pageData.value) return null
+  const d = pageData.value
+  const hasFull = d.analysisMode === 'full' || d.accessibility != null
+  if (!hasFull) {
+    return {
+      text: 'Análisis parcial: algunas métricas avanzadas no están disponibles en esta pestaña.',
+      showRefresh: true,
+      tone: 'warn',
+    }
+  }
+  if (d.reinjected && !hasFull) {
+    return {
+      text: 'Content script re-conectado. Recarga la página (F5) si faltan datos.',
+      showRefresh: true,
+      tone: 'info',
+    }
+  }
+  return null
+})
+
+const analysisBannerClass = computed(() => {
+  if (analysisBanner.value?.tone === 'warn') {
+    return 'border-amber-500/40 bg-amber-950/40 text-amber-100'
+  }
+  return 'border-emerald-500/35 bg-emerald-950/35 text-emerald-100'
+})
+
+function waitForTabComplete(tabId) {
+  return new Promise((resolve) => {
+    const onUpdated = (id, info) => {
+      if (id === tabId && info.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(onUpdated)
+        resolve()
       }
-      resolve(response)
-    })
+    }
+    chrome.tabs.onUpdated.addListener(onUpdated)
+    setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(onUpdated)
+      resolve()
+    }, 12000)
   })
+}
+
+async function refreshActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id) return
+  loading.value = true
+  await chrome.tabs.reload(tab.id)
+  await waitForTabComplete(tab.id)
+  await new Promise((r) => setTimeout(r, 450))
+  await loadPageData(false)
 }
 
 const getMeta = (name) => {
   if (!pageData.value?.metaTags) return null
-  return pageData.value.metaTags[name] || 
-         pageData.value.metaTags[`og:${name}`] || 
+  return pageData.value.metaTags[name] ||
+         pageData.value.metaTags[`og:${name}`] ||
          pageData.value.metaTags[`twitter:${name}`]
 }
 
-const analyze = async () => {
-  loading.value = true
-  pageData.value = null
-  activeTab.value = 'resumen'
+function ensurePageScores(data) {
+  if (!data) return data
+  if (!data.scores) {
+    data.scores = calculateScores(data)
+  }
+  return data
+}
+
+async function ensurePageHeaders(tabId, data) {
+  if (!data || !tabId) return data
+  if (Array.isArray(data.headers?.headers)) return data
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: analyzeHeadersInPage,
+    })
+    if (result?.result) {
+      data.headers = result.result
+    }
+  } catch (e) {
+    console.warn('[RonHack SEO] headers desde página', e)
+  }
+  return data
+}
+
+async function enrichPageExtras(tabId, data) {
+  if (!data || !tabId) return data
+
+  const tasks = []
+
+  if (!data.schemas?.length) {
+    tasks.push(
+      chrome.scripting
+        .executeScript({ target: { tabId }, func: detectSchemasInPage })
+        .then(([result]) => {
+          if (result?.result?.length) {
+            data.schemas = result.result
+            data.detectedSchemaTypes = extractDetectedTypes(result.result)
+            data.schemaRecommendations = checkSchemaRecommendations(result.result)
+          }
+        })
+        .catch(() => {}),
+    )
+  }
+
+  if (!data.techStack?.total) {
+    tasks.push(
+      chrome.scripting
+        .executeScript({ target: { tabId }, func: detectTechStackInPage })
+        .then(([result]) => {
+          if (result?.result?.total) data.techStack = result.result
+        })
+        .catch(() => {}),
+    )
+  }
+
+  if (!data.imageAltStats) {
+    tasks.push(
+      chrome.scripting
+        .executeScript({ target: { tabId }, func: analyzeImageAltInPage })
+        .then(([result]) => {
+          if (result?.result) data.imageAltStats = result.result
+        })
+        .catch(() => {}),
+    )
+  }
+
+  if (!data.outboundLinks) {
+    tasks.push(
+      chrome.scripting
+        .executeScript({ target: { tabId }, func: analyzeOutboundLinksInPage })
+        .then(([result]) => {
+          if (result?.result) data.outboundLinks = result.result
+        })
+        .catch(() => {}),
+    )
+  }
+
+  if (tasks.length) await Promise.all(tasks)
+  return data
+}
+
+async function loadPageData(highlightHeaders = false) {
+  const hadData = !!pageData.value
+  if (!hadData) loading.value = true
+  analyzeError.value = null
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
     if (!tab?.id) {
-      alert('No se pudo obtener la pestaña actual')
+      analyzeError.value = 'No se pudo obtener la pestaña actual.'
+      pageData.value = null
       loading.value = false
       return
     }
@@ -368,25 +616,32 @@ const analyze = async () => {
     if (
       tab.url?.startsWith('chrome://') ||
       tab.url?.startsWith('chrome-extension://') ||
-      tab.url?.startsWith('brave://')
+      tab.url?.startsWith('brave://') ||
+      tab.url?.startsWith('edge://')
     ) {
-      alert('No se puede analizar esta página. Navega a una página web normal (http:// o https://)')
+      analyzeError.value = 'Abre una página web normal (http:// o https://) para ver el resumen SEO.'
+      pageData.value = null
       loading.value = false
       return
     }
 
-    try {
-      const response = await sendMessageToTab(tab.id, { action: 'getPageData' })
-      if (response?.error) {
-        alert('Error al obtener datos: ' + response.error)
-        loading.value = false
-        return
-      }
-      pageData.value = response
+    activeTabUrl.value = tab.url || ''
+
+    const bridgeResult = await requestPageData(tab.id, { highlightHeaders })
+    if (bridgeResult?.data) {
+      const enriched = ensurePageScores(bridgeResult.data)
+      enriched.analysisMode = bridgeResult.data.analysisMode || bridgeResult.mode || 'full'
+      enriched.reinjected = bridgeResult.reinjected
+      await ensurePageHeaders(tab.id, enriched)
+      await enrichPageExtras(tab.id, enriched)
+      pageData.value = enriched
+      await savePageCache(enriched)
       loading.value = false
-    } catch {
-      console.warn('Content script no disponible, inyectando código mínimo…')
-      try {
+      return
+    }
+
+    console.warn('Content script no disponible, usando análisis parcial…')
+    try {
         const result = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => {
@@ -397,6 +652,19 @@ const analyze = async () => {
               performance: null,
               links: [],
               text: '',
+              imageCount: document.images.length,
+              headers: null,
+              canonical: {
+                exists: !!document.querySelector('link[rel="canonical"]'),
+                url: document.querySelector('link[rel="canonical"]')?.href || '',
+              },
+              metaRobots: {
+                exists: !!document.querySelector('meta[name="robots"]'),
+                content: document.querySelector('meta[name="robots"]')?.getAttribute('content') || '',
+              },
+              langTag: {
+                htmlLang: document.documentElement.lang || '',
+              },
             }
             document.querySelectorAll('meta').forEach((tag) => {
               const name = tag.getAttribute('name') || tag.getAttribute('property') || tag.getAttribute('http-equiv')
@@ -436,81 +704,99 @@ const analyze = async () => {
             return data
           },
         })
-        loading.value = false
         if (result?.[0]?.result) {
-          pageData.value = {
+          const partial = {
             ...result[0].result,
             schemas: [],
             detectedSchemaTypes: [],
             schemaRecommendations: [],
             scannerValues: null,
           }
+          const enriched = ensurePageScores(partial)
+          enriched.analysisMode = 'partial'
+          enriched.reinjected = false
+          await ensurePageHeaders(tab.id, enriched)
+          await enrichPageExtras(tab.id, enriched)
           try {
-            await chrome.scripting.executeScript({
+            const [wv] = await chrome.scripting.executeScript({
               target: { tabId: tab.id },
-              func: () => {
-                const ATTR = 'data-rh-header-audit'
-                const LABEL_CLASS = 'rh-header-audit-label'
-                const COLORS = {
-                  H1: '#FFB6C1',
-                  H2: '#B6E0FF',
-                  H3: '#C8F7C5',
-                  H4: '#FFE4B5',
-                  H5: '#E6D9FF',
-                  H6: '#FFD4E5',
-                }
-                document.querySelectorAll(`[${ATTR}="1"]`).forEach((el) => {
-                  el.querySelectorAll(`.${LABEL_CLASS}`).forEach((n) => n.remove())
-                  el.removeAttribute(ATTR)
-                  el.style.removeProperty('background-color')
-                  el.style.removeProperty('border')
-                  el.style.removeProperty('padding')
-                  el.style.removeProperty('box-sizing')
-                  el.style.removeProperty('color')
-                  el.style.removeProperty('position')
-                  el.style.removeProperty('z-index')
-                })
-                for (let i = 1; i <= 6; i++) {
-                  document.querySelectorAll(`h${i}`).forEach((el) => {
-                    const tagName = el.tagName
-                    const bg = COLORS[tagName] || '#EEEEEE'
-                    el.setAttribute(ATTR, '1')
-                    el.style.setProperty('background-color', bg)
-                    el.style.setProperty('border', '2px solid #000')
-                    el.style.setProperty('padding', '6px 10px')
-                    el.style.setProperty('box-sizing', 'border-box')
-                    el.style.setProperty('color', '#000')
-                    el.style.setProperty('position', 'relative')
-                    el.style.setProperty('z-index', '2147483000')
-                    const label = document.createElement('span')
-                    label.className = LABEL_CLASS
-                    label.textContent = `${tagName} - `
-                    label.style.fontWeight = '700'
-                    el.insertBefore(label, el.firstChild)
-                  })
-                }
-              },
+              func: collectWebVitalsInPage,
             })
+            if (wv?.result) enriched.webVitals = wv.result
           } catch {
             /* ignore */
           }
-          alert(
-            'Análisis parcial: recarga la página (F5) para activar el content script y obtener datos estructurados, problemas completos y escáner.',
-          )
+          pageData.value = enriched
+          await savePageCache(enriched)
+          if (highlightHeaders) {
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                  const ATTR = 'data-rh-header-audit'
+                  const LABEL_CLASS = 'rh-header-audit-label'
+                  const COLORS = {
+                    H1: '#FFB6C1',
+                    H2: '#B6E0FF',
+                    H3: '#C8F7C5',
+                    H4: '#FFE4B5',
+                    H5: '#E6D9FF',
+                    H6: '#FFD4E5',
+                  }
+                  document.querySelectorAll(`[${ATTR}="1"]`).forEach((el) => {
+                    el.querySelectorAll(`.${LABEL_CLASS}`).forEach((n) => n.remove())
+                    el.removeAttribute(ATTR)
+                    el.style.removeProperty('background-color')
+                    el.style.removeProperty('border')
+                    el.style.removeProperty('padding')
+                    el.style.removeProperty('box-sizing')
+                    el.style.removeProperty('color')
+                    el.style.removeProperty('position')
+                    el.style.removeProperty('z-index')
+                  })
+                  for (let i = 1; i <= 6; i++) {
+                    document.querySelectorAll(`h${i}`).forEach((el) => {
+                      const tagName = el.tagName
+                      const bg = COLORS[tagName] || '#EEEEEE'
+                      el.setAttribute(ATTR, '1')
+                      el.style.setProperty('background-color', bg)
+                      el.style.setProperty('border', '2px solid #000')
+                      el.style.setProperty('padding', '6px 10px')
+                      el.style.setProperty('box-sizing', 'border-box')
+                      el.style.setProperty('color', '#000')
+                      el.style.setProperty('position', 'relative')
+                      el.style.setProperty('z-index', '2147483000')
+                      const label = document.createElement('span')
+                      label.className = LABEL_CLASS
+                      label.textContent = `${tagName} - `
+                      label.style.fontWeight = '700'
+                      el.insertBefore(label, el.firstChild)
+                    })
+                  }
+                },
+              })
+            } catch {
+              /* ignore */
+            }
+          }
         } else {
-          alert('No se pudieron obtener los datos de la página')
+          analyzeError.value = 'No se pudieron obtener los datos de la página.'
         }
       } catch (injectError) {
         console.error(injectError)
-        loading.value = false
-        alert('Error al analizar la página: ' + injectError.message)
+        analyzeError.value = 'Error al analizar: ' + injectError.message
       }
-    }
+      loading.value = false
   } catch (error) {
     console.error(error)
     loading.value = false
-    alert('Error al analizar la página. Comprueba permisos de la extensión.')
+    analyzeError.value = 'Error al analizar la página. Comprueba permisos de la extensión.'
   }
+}
+
+const analyze = async () => {
+  activeTab.value = 'resumen'
+  await loadPageData(true)
 }
 </script>
 

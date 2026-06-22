@@ -3,6 +3,7 @@
 import { SCANNER_COLUMNS } from './constants/scannerColumns.js'
 import { buildPlaceholderScannerRow, buildScannerValuesFromHtml, countH1InHtml } from './utils/scannerRow.js'
 import { analyzeCrawlResults } from './utils/crawlDuplicateAnalysis.js'
+import { fetchAllKeywordSuggestions } from './utils/keywordSuggest.js'
 
 const MAX_URLS = 1000
 const DELAY_MS = 150
@@ -477,5 +478,63 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true
   }
 
+  if (msg?.action === 'keywordSuggestions') {
+    ;(async () => {
+      try {
+        const q = String(msg.query || '').trim()
+        if (!q) {
+          sendResponse({ google: [], bing: [], ddg: [], all: [], sources: [] })
+          return
+        }
+        const result = await fetchAllKeywordSuggestions(q, msg.pageData || null)
+        sendResponse(result)
+      } catch (e) {
+        sendResponse({ google: [], bing: [], ddg: [], all: [], sources: [], error: String(e?.message || e) })
+      }
+    })()
+    return true
+  }
+
+  if (msg?.action === 'geocodeLocation') {
+    ;(async () => {
+      try {
+        const result = await geocodePlace(String(msg.query || '').trim())
+        sendResponse(result || { error: 'Ubicación no encontrada' })
+      } catch (e) {
+        sendResponse({ error: String(e?.message || e) })
+      }
+    })()
+    return true
+  }
+
   return false
 })
+
+async function geocodePlace(query) {
+  if (!query) return null
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'Accept-Language': 'es',
+      'User-Agent': 'RonHackSEO-Extension/1.0.1 (Chrome Extension)',
+    },
+  })
+  const rows = await res.json()
+  if (!rows?.[0]) return null
+  const row = rows[0]
+  const a = row.address || {}
+  const city = a.city || a.town || a.village || a.municipality || a.county || ''
+  const region = a.state || a.region || a.province || ''
+  const country = a.country || ''
+  const canonical = [city, region, country].filter(Boolean).join(',')
+  return {
+    displayName: row.display_name,
+    lat: row.lat,
+    lon: row.lon,
+    city,
+    region,
+    country,
+    canonical: canonical || row.display_name,
+  }
+}

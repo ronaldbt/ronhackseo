@@ -40,13 +40,13 @@
         <h4 class="list-title">Todos los headers en orden de aparición en HTML</h4>
       </div>
       
-      <div v-if="headersData.headers && headersData.headers.length === 0" class="empty-state">
+      <div v-if="headerList.length === 0" class="empty-state">
         <p>No se encontraron headers (H1-H6) en esta página.</p>
       </div>
-      
+
       <div v-else class="headers-tree">
-        <div 
-          v-for="(header, index) in headersData.headers" 
+        <div
+          v-for="(header, index) in headerList"
           :key="index"
           :class="['header-item', `level-${header.level}`]"
         >
@@ -80,8 +80,13 @@ const headerCounts = computed(() => {
   }
 })
 
+const headerList = computed(() => {
+  if (Array.isArray(props.headersData.headers)) return props.headersData.headers
+  return []
+})
+
 const totalHeaders = computed(() => {
-  return props.headersData.count?.total || 0
+  return props.headersData.count?.total || headerList.value.length || 0
 })
 </script>
 
@@ -91,7 +96,7 @@ const totalHeaders = computed(() => {
 }
 
 .summary-section {
-  padding: 12px;
+  padding: 8px 10px;
   background: rgba(39, 39, 42, 0.45);
   border-radius: 8px;
   border: 1px solid rgba(52, 211, 153, 0.14);
@@ -99,16 +104,17 @@ const totalHeaders = computed(() => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .stat-card {
   text-align: center;
-  padding: 12px;
+  padding: 6px 4px;
   background: rgba(24, 24, 27, 0.9);
   border-radius: 6px;
-  border: 2px solid rgba(63, 63, 70, 0.85);
+  border: 1px solid rgba(63, 63, 70, 0.85);
+  min-width: 0;
 }
 
 .stat-card.total {
@@ -117,19 +123,19 @@ const totalHeaders = computed(() => {
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: #f4f4f5;
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   color: #a1a1aa;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
 }
 
 .critical-section,
@@ -271,18 +277,18 @@ const totalHeaders = computed(() => {
 }
 
 .header-item.level-1 .header-tag {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(127, 29, 29, 0.55);
+  color: #fecaca;
 }
 
 .header-item.level-2 .header-tag {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(120, 53, 15, 0.55);
+  color: #fde68a;
 }
 
 .header-item.level-3 .header-tag {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(6, 78, 59, 0.55);
+  color: #a7f3d0;
 }
 
 .header-text {

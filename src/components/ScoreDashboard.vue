@@ -1,5 +1,16 @@
 <template>
   <div class="score-dashboard">
+    <div class="mb-5 flex items-start justify-between gap-4 border-b border-emerald-500/20 pb-3">
+      <h2 class="m-0 shrink-0 text-lg font-semibold text-zinc-100">Puntuaciones SEO</h2>
+      <div class="min-w-0 max-w-[58%] shrink-0 rounded-lg border px-3 py-2 text-right" :class="overallBoxClass">
+        <div class="flex flex-wrap items-baseline justify-end gap-x-2 gap-y-0">
+          <span class="text-[10px] font-bold uppercase tracking-wide" :class="overallLabelClass">Puntuación General</span>
+          <span class="text-2xl font-bold leading-none" :class="overallValueClass">{{ overallScore }}</span>
+        </div>
+        <p class="mt-1 text-[11px] leading-snug" :class="overallTextClass">{{ overallExplanation }}</p>
+      </div>
+    </div>
+
     <div class="scores-grid">
       <div class="score-item" v-for="score in scores" :key="score.name">
         <div class="donut-wrapper">
@@ -33,9 +44,9 @@
         <div class="score-info">
           <h3 class="score-name">{{ score.name }}</h3>
           <p class="score-description">{{ score.description }}</p>
-          
-          <!-- Explicaciones -->
-          <div class="score-explanations mt-3">
+
+          <details class="score-explanations mt-3">
+            <summary class="score-details-toggle">Ver detalle del puntaje</summary>
             <div class="why-box" v-if="score.explanations.reasons.length > 0">
               <div class="why-title">Por qué este puntaje:</div>
               <ul class="why-list">
@@ -49,18 +60,7 @@
                 <li v-for="(issue, idx) in score.explanations.issues" :key="idx">{{ issue }}</li>
               </ul>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="overall-score">
-      <div class="overall-badge" :class="overallClass">
-        <span class="overall-label">Puntuación General</span>
-        <span class="overall-value">{{ overallScore }}</span>
-        <div v-if="explanations" class="overall-explanation">
-          <p v-if="overallScore >= 80" class="mt-2 text-sm text-zinc-300">Excelente trabajo. Tu sitio está muy bien optimizado.</p>
-          <p v-else-if="overallScore >= 60" class="mt-2 text-sm text-zinc-300">Buen rendimiento general con oportunidades de mejora.</p>
-          <p v-else class="mt-2 text-sm text-zinc-300">Necesita mejoras significativas. Revisa las recomendaciones arriba.</p>
+          </details>
         </div>
       </div>
     </div>
@@ -84,11 +84,11 @@ const props = defineProps({
 const circumference = 2 * Math.PI * 15.91549430918954 // ~100
 
 const getDonutStyle = (value) => {
-  const percentage = value / 100
-  const dasharray = `${circumference * percentage} ${circumference}`
+  const pct = Math.max(0, Math.min(100, Number(value) || 0))
+  const filled = (pct / 100) * circumference
   return {
-    strokeDasharray: dasharray,
-    strokeDashoffset: circumference * 0.25 // Offset para empezar desde arriba
+    strokeDasharray: `${filled} ${circumference}`,
+    strokeDashoffset: 0,
   }
 }
 
@@ -125,10 +125,40 @@ const scores = computed(() => {
 
 const overallScore = computed(() => props.scores.overall || 0)
 
-const overallClass = computed(() => {
-  if (overallScore.value >= 80) return 'bg-green-100 text-green-900 border-green-500'
-  if (overallScore.value >= 60) return 'bg-yellow-100 text-yellow-900 border-yellow-500'
-  return 'bg-red-100 text-red-900 border-red-500'
+const overallExplanation = computed(() => {
+  if (overallScore.value >= 80) return 'Excelente trabajo. Tu sitio está muy bien optimizado.'
+  if (overallScore.value >= 60) return 'Buen rendimiento general con oportunidades de mejora.'
+  return 'Necesita mejoras significativas. Revisa las recomendaciones.'
+})
+
+const overallToneClass = computed(() => {
+  if (overallScore.value >= 80) return 'ok'
+  if (overallScore.value >= 60) return 'warn'
+  return 'bad'
+})
+
+const overallBoxClass = computed(() => {
+  if (overallToneClass.value === 'ok') return 'border-emerald-500/55 bg-emerald-950/80'
+  if (overallToneClass.value === 'warn') return 'border-amber-500/55 bg-amber-950/70'
+  return 'border-red-500/50 bg-red-950/70'
+})
+
+const overallLabelClass = computed(() => {
+  if (overallToneClass.value === 'ok') return 'text-emerald-300'
+  if (overallToneClass.value === 'warn') return 'text-amber-300'
+  return 'text-red-300'
+})
+
+const overallValueClass = computed(() => {
+  if (overallToneClass.value === 'ok') return 'text-emerald-50'
+  if (overallToneClass.value === 'warn') return 'text-amber-50'
+  return 'text-red-50'
+})
+
+const overallTextClass = computed(() => {
+  if (overallToneClass.value === 'ok') return 'text-emerald-200/90'
+  if (overallToneClass.value === 'warn') return 'text-amber-200/90'
+  return 'text-red-200/90'
 })
 </script>
 
@@ -141,9 +171,7 @@ const overallClass = computed(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  margin-bottom: 20px;
 }
-
 .score-item {
   display: flex;
   flex-direction: column;
@@ -217,6 +245,23 @@ const overallClass = computed(() => {
   font-size: 11px;
 }
 
+.score-details-toggle {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+  list-style: none;
+  user-select: none;
+}
+
+.score-details-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.score-details-toggle:hover {
+  color: #6ee7b7;
+}
+
 .why-box,
 .issues-box {
   margin-bottom: 10px;
@@ -251,42 +296,5 @@ const overallClass = computed(() => {
 .why-list li,
 .issues-list li {
   margin-bottom: 4px;
-}
-
-.overall-score {
-  display: flex;
-  justify-content: center;
-  padding-top: 20px;
-  border-top: 2px solid rgba(52, 211, 153, 0.15);
-}
-
-.overall-badge {
-  padding: 16px 32px;
-  border-radius: 12px;
-  border: 3px solid;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-}
-
-.overall-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.overall-value {
-  font-size: 36px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.overall-explanation {
-  margin-top: 8px;
-  text-align: center;
-  max-width: 300px;
 }
 </style>

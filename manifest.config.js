@@ -3,11 +3,16 @@ import { defineManifest } from '@crxjs/vite-plugin'
 export default defineManifest({
   manifest_version: 3,
   name: 'RonHack SEO',
-  version: '1.0.0',
+  version: '1.0.1',
   description:
     'Consola de auditoría SEO: análisis on-page, rastreo de sitio, escáner de columnas, problemas y datos estructurados.',
   permissions: ['activeTab', 'tabs', 'scripting', 'storage'],
-  optional_host_permissions: ['http://*/*', 'https://*/*'],
+  host_permissions: [
+    'https://suggestqueries.google.com/*',
+    'https://api.bing.com/*',
+    'https://duckduckgo.com/*',
+    'https://nominatim.openstreetmap.org/*',
+  ],
   background: {
     service_worker: 'src/background.js',
     type: 'module',

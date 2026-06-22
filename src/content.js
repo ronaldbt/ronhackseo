@@ -3,27 +3,23 @@
 
 import { computeLinkStats, buildScannerValues } from './utils/scannerRow.js'
 import { applyHeaderVisualAudit } from './utils/headerVisualAudit.js'
-
-function extractDetectedTypes(schemas) {
-  const set = new Set()
-  for (const s of schemas || []) {
-    if (s.type === 'Invalid') continue
-    const add = (t) => {
-      if (!t) return
-      const arr = Array.isArray(t) ? t : [t]
-      arr.forEach((z) => set.add(String(z)))
-    }
-    if (s.data) {
-      add(s.data['@type'])
-      if (Array.isArray(s.data['@graph'])) {
-        s.data['@graph'].forEach((n) => add(n && n['@type']))
-      }
-    } else {
-      add(s.type)
-    }
-  }
-  return [...set]
-}
+import { calculateScores } from './utils/calculateScores.js'
+import { analyzeHeaders } from './utils/headerAnalysis.js'
+import { collectWebVitalsSnapshot } from './utils/webVitalsCollect.js'
+import { extractPaaInPage } from './utils/keywordAnalysis.js'
+import {
+  detectSchemasInDocument,
+  extractDetectedTypes,
+  checkSchemaRecommendations,
+  compactSchemasForTransport,
+} from './utils/schemaDetect.js'
+import { detectTechStack } from './utils/techStackDetect.js'
+import { analyzeContentReadability } from './utils/contentReadability.js'
+import { analyzeImageAltInDocument, analyzeOutboundLinksInDocument } from './utils/pageMediaLinks.js'
+import {
+  applyContentHighlights,
+  removeContentHighlights,
+} from './utils/contentTextHighlight.js'
 
 async function fetchHttpMeta(url) {
   const out = {
@@ -36,12 +32,16 @@ async function fetchHttpMeta(url) {
     contentLength: '',
   }
   try {
-    const r = await fetch(url, {
+    const fetchHead = fetch(url, {
       method: 'HEAD',
       credentials: 'include',
       cache: 'no-store',
       redirect: 'follow',
     })
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('HEAD timeout')), 2500),
+    )
+    const r = await Promise.race([fetchHead, timeout])
     out.status = r.status
     out.statusText = r.statusText || ''
     out.contentType = r.headers.get('content-type') || ''
@@ -55,91 +55,11 @@ async function fetchHttpMeta(url) {
 }
 
 function detectSchemas() {
-  const schemas = []
-  const scripts = document.querySelectorAll('script[type="application/ld+json"]')
-  
-  scripts.forEach(script => {
-    try {
-      const json = JSON.parse(script.innerText)
-      const items = Array.isArray(json) ? json : [json]
-      const flatNodes = []
-      items.forEach((item) => {
-        if (item && Array.isArray(item['@graph'])) {
-          item['@graph'].forEach((n) => flatNodes.push(n))
-        } else {
-          flatNodes.push(item)
-        }
-      })
-
-      flatNodes.forEach((item) => {
-        if (!item || typeof item !== 'object') return
-        const typeRaw = item['@type']
-        const primaryType = Array.isArray(typeRaw) ? typeRaw[0] : typeRaw
-        const schema = {
-          type: primaryType || 'Thing',
-          context: item['@context'] || 'https://schema.org',
-          data: item,
-          isValid: true,
-          errors: [],
-        }
-
-        // Validar campos requeridos según el tipo
-        switch (schema.type) {
-          case 'Product':
-            if (!item.name) schema.errors.push('Falta campo requerido: name')
-            if (!item.description) schema.errors.push('Falta campo recomendado: description')
-            if (!item.image && !item.image) schema.errors.push('Falta campo recomendado: image')
-            break
-          case 'Article':
-            if (!item.headline) schema.errors.push('Falta campo requerido: headline')
-            if (!item.datePublished) schema.errors.push('Falta campo recomendado: datePublished')
-            break
-          case 'LocalBusiness':
-            if (!item.name) schema.errors.push('Falta campo requerido: name')
-            if (!item.address) schema.errors.push('Falta campo recomendado: address')
-            break
-          case 'Organization':
-            if (!item.name) schema.errors.push('Falta campo requerido: name')
-            break
-        }
-        
-        if (schema.errors.length > 0) {
-          schema.isValid = false
-        }
-        
-        schemas.push(schema)
-      })
-    } catch (error) {
-      schemas.push({
-        type: 'Invalid',
-        error: 'Error al parsear JSON: ' + error.message,
-        isValid: false
-      })
-    }
-  })
-  
-  return schemas
+  return detectSchemasInDocument(document)
 }
 
-function checkSchemaRecommendations(schemas) {
-  const recommendations = []
-  const hasProduct = schemas.some(s => s.type === 'Product')
-  const hasReview = schemas.some(
-    (s) => s.type === 'Review' || (s.data && s.data.aggregateRating),
-  )
-  const hasRating = schemas.some(
-    (s) => s.data && (s.data.aggregateRating || s.data.rating),
-  )
-  
-  if (hasProduct && !hasReview && !hasRating) {
-    recommendations.push({
-      type: 'warning',
-      message: '⚠️ Estás perdiendo las estrellas en Google. Agrega Schema de Reseñas (Review) o AggregateRating para mostrar valoraciones en los resultados de búsqueda.',
-      priority: 'high'
-    })
-  }
-  
-  return recommendations
+function checkSchemaRecommendationsLocal(schemas) {
+  return checkSchemaRecommendations(schemas)
 }
 
 function checkAccessibility() {
@@ -745,482 +665,6 @@ function measureTitleWidth() {
   }
 }
 
-function analyzeHeaders() {
-  const headers = {
-    h1: [],
-    h2: [],
-    h3: [],
-    h4: [],
-    h5: [],
-    h6: []
-  }
-  
-  // Obtener todos los headers en orden de aparición
-  const allHeaders = []
-  const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
-  
-  allElements.forEach((header, index) => {
-    const level = parseInt(header.tagName.charAt(1))
-    const text = header.textContent.trim()
-    const id = header.id || null
-    
-    const headerData = {
-      level,
-      tag: header.tagName.toLowerCase(),
-      text: text.substring(0, 200), // Limitar longitud para mostrar
-      fullText: text,
-      id,
-      index
-    }
-    
-    headers[`h${level}`].push(headerData)
-    allHeaders.push(headerData)
-  })
-  
-  // Análisis y problemas
-  const issues = []
-  const warnings = []
-  let score = 100
-  
-  // Análisis de H1
-  if (headers.h1.length === 0) {
-    issues.push({
-      type: 'critical',
-      message: 'Falta H1. Cada página debe tener exactamente UN H1. Es el elemento más importante para SEO.'
-    })
-    score -= 25
-  } else if (headers.h1.length > 1) {
-    issues.push({
-      type: 'critical',
-      message: `Hay ${headers.h1.length} etiquetas H1. Debe haber SOLO UNA. Múltiples H1 confunden a Google sobre el tema principal de la página.`
-    })
-    score -= 30
-  } else {
-    // Verificar longitud del H1
-    const h1Text = headers.h1[0].fullText
-    if (h1Text.length < 20) {
-      warnings.push({
-        type: 'warning',
-        message: `El H1 es muy corto (${h1Text.length} caracteres). Idealmente entre 20-60 caracteres.`
-      })
-      score -= 5
-    } else if (h1Text.length > 70) {
-      warnings.push({
-        type: 'warning',
-        message: `El H1 es muy largo (${h1Text.length} caracteres). Idealmente entre 20-60 caracteres.`
-      })
-      score -= 5
-    }
-    
-    // Verificar que H1 no sea igual al título
-    const pageTitle = document.title.trim()
-    if (h1Text.toLowerCase() === pageTitle.toLowerCase()) {
-      warnings.push({
-        type: 'info',
-        message: 'El H1 es idéntico al título de la página. Considera variar ligeramente para mejor SEO.'
-      })
-    }
-  }
-  
-  // Análisis de estructura jerárquica
-  let previousLevel = 0
-  let skippedLevels = 0
-  
-  allHeaders.forEach((header, index) => {
-    if (index > 0) {
-      const levelDiff = header.level - previousLevel
-      
-      // Detectar saltos de nivel (ej: H2 -> H4, saltando H3)
-      if (levelDiff > 1) {
-        skippedLevels++
-        warnings.push({
-          type: 'warning',
-          message: `Estructura incorrecta: ${allHeaders[index - 1].tag.toUpperCase()} seguido de ${header.tag.toUpperCase()}. Debes seguir el orden jerárquico (H1 → H2 → H3).`
-        })
-      }
-    }
-    previousLevel = header.level
-  })
-  
-  if (skippedLevels > 0) {
-    score -= Math.min(15, skippedLevels * 3)
-  }
-  
-  // Análisis de cantidad de headers
-  const totalHeaders = allHeaders.length
-  if (totalHeaders === 0) {
-    issues.push({
-      type: 'critical',
-      message: 'No se encontraron headers (H1-H6). Los headers estructuran el contenido y son esenciales para SEO.'
-    })
-    score -= 30
-  } else if (totalHeaders < 3 && headers.h2.length === 0) {
-    warnings.push({
-      type: 'warning',
-      message: 'Muy pocos headers. Considera usar H2 para estructurar el contenido en secciones.'
-    })
-    score -= 10
-  }
-  
-  // Análisis de H2 (importantes para estructura)
-  if (headers.h2.length === 0 && totalHeaders > 1) {
-    warnings.push({
-      type: 'warning',
-      message: 'No se encontraron H2. Los H2 ayudan a estructurar el contenido en secciones principales.'
-    })
-    score -= 5
-  }
-  
-  // Verificar headers vacíos o muy cortos
-  const emptyHeaders = allHeaders.filter(h => h.fullText.length < 3)
-  if (emptyHeaders.length > 0) {
-    warnings.push({
-      type: 'warning',
-      message: `${emptyHeaders.length} header(s) están vacíos o casi vacíos. Elimínalos o añade contenido.`
-    })
-    score -= 5
-  }
-  
-  // Verificar headers demasiado largos
-  const longHeaders = allHeaders.filter(h => h.fullText.length > 120)
-  if (longHeaders.length > 0) {
-    warnings.push({
-      type: 'info',
-      message: `${longHeaders.length} header(s) son muy largos (>120 caracteres). Considera acortarlos.`
-    })
-    score -= 2
-  }
-  
-  // Verificar uso excesivo de un mismo nivel
-  Object.keys(headers).forEach(tag => {
-    const count = headers[tag].length
-    if (tag === 'h3' && count > 20) {
-      warnings.push({
-        type: 'info',
-        message: `Muchos ${tag.toUpperCase()} (${count}). Considera reorganizar el contenido en más H2.`
-      })
-    }
-  })
-  
-  return {
-    headers: allHeaders,
-    count: {
-      h1: headers.h1.length,
-      h2: headers.h2.length,
-      h3: headers.h3.length,
-      h4: headers.h4.length,
-      h5: headers.h5.length,
-      h6: headers.h6.length,
-      total: totalHeaders
-    },
-    issues,
-    warnings,
-    score: Math.max(0, Math.min(100, score)),
-    structure: {
-      hasH1: headers.h1.length === 1,
-      hasMultipleH1: headers.h1.length > 1,
-      hasH2: headers.h2.length > 0,
-      properHierarchy: skippedLevels === 0
-    }
-  }
-}
-
-function calculateScores(data) {
-  let seoScore = 100
-  let performanceScore = 100
-  let contentScore = 100
-  const seoIssues = []
-  const performanceIssues = []
-  const contentIssues = []
-  
-  // SEO Score - Incluyendo TODAS las métricas
-  if (!data.title || data.title.length === 0) {
-    seoScore -= 20
-    seoIssues.push('Falta el título de la página (etiqueta <title>)')
-  } else if (data.title.length < 30) {
-    seoScore -= 10
-    seoIssues.push('El título es muy corto (menos de 30 caracteres). Idealmente 30-60 caracteres.')
-  } else if (data.title.length > 60) {
-    seoScore -= 10
-    seoIssues.push('El título es muy largo (más de 60 caracteres). Google lo truncará.')
-  }
-  
-  if (!data.metaTags['description']) {
-    seoScore -= 15
-    seoIssues.push('Falta la meta description. Es fundamental para el CTR en los resultados de búsqueda.')
-  } else if (data.metaTags['description'].length < 120 || data.metaTags['description'].length > 160) {
-    seoScore -= 5
-    seoIssues.push('La meta description debe tener entre 120-160 caracteres para una visualización óptima.')
-  }
-  
-  if (!data.metaTags['og:title']) {
-    seoScore -= 5
-    seoIssues.push('Falta og:title para compartido en redes sociales.')
-  }
-  
-  if (data.schemas && data.schemas.length === 0) {
-    seoScore -= 10
-    seoIssues.push('No se detectó Schema Markup (JSON-LD). Añádelo para mejorar la visibilidad en resultados enriquecidos.')
-  } else if (data.schemas && data.schemas.some(s => !s.isValid)) {
-    seoScore -= 5
-    seoIssues.push('Algunos Schema tienen errores. Revísalos y corrige los campos requeridos.')
-  }
-  
-  if (data.hiddenContent && data.hiddenContent.count > 5) {
-    seoScore -= 20
-    seoIssues.push(`Se detectó mucho contenido oculto (${data.hiddenContent.count} elementos). Podría ser penalizado por Google como Black Hat SEO.`)
-  }
-  
-  if (data.keywordCannibalization && data.keywordCannibalization.count > 0) {
-    seoScore -= 10
-    seoIssues.push(`Canibalización de keywords: ${data.keywordCannibalization.count} texto(s) duplicado(s) en el menú. Usa textos distintos para cada enlace.`)
-  }
-  
-  if (data.metaRobots && data.metaRobots.noindex) {
-    seoScore = 0
-    seoIssues.push('¡CRÍTICO: Esta página tiene noindex! Google NO puede indexar esta página. Elimina esta etiqueta.')
-  }
-  
-  if (data.canonical && !data.canonical.exists) {
-    seoScore -= 10
-    seoIssues.push('Falta URL canónica. Puede causar problemas de contenido duplicado.')
-  } else if (data.canonical && !data.canonical.matches) {
-    seoScore -= 5
-    seoIssues.push('La URL canónica no coincide con la URL actual. Verifica que sea correcta.')
-  }
-  
-  if (data.titleWidth && data.titleWidth.isTooLong) {
-    seoScore -= 5
-    seoIssues.push(`El título es demasiado ancho (${Math.round(data.titleWidth.width)}px). Google lo truncará.`)
-  }
-  
-  if (data.nofollowInternal && data.nofollowInternal.nofollowCount > 0) {
-    seoScore -= 5
-    seoIssues.push(`${data.nofollowInternal.nofollowCount} enlace(s) interno(s) tienen nofollow. Esto bloquea el paso de autoridad a tus páginas.`)
-  }
-  
-  if (data.langTag && !data.langTag.htmlLang || data.langTag.htmlLang === 'No definido') {
-    seoScore -= 5
-    seoIssues.push('Falta el atributo lang en <html>. Es importante para el SEO internacional.')
-  } else if (data.langTag && !data.langTag.matches && data.langTag.detectedLang !== 'No detectado') {
-    seoScore -= 5
-    seoIssues.push(`El atributo lang="${data.langTag.htmlLang}" no coincide con el idioma detectado.`)
-  }
-  
-  if (data.favicons && data.favicons.missing && data.favicons.missing.length > 0) {
-    seoScore -= 3
-    seoIssues.push(`Faltan iconos: ${data.favicons.missing.join(', ')}. Mejora la experiencia de marca.`)
-  }
-  
-  if (data.socialTags && data.socialTags.count < 8) {
-    seoScore -= 3
-    seoIssues.push(`Faltan etiquetas sociales (tienes ${data.socialTags.count}/12). Añade más para mejor compartido.`)
-  }
-  
-  if (data.stopWordsURL && (data.stopWordsURL.isTooLong || data.stopWordsURL.stopWordsCount > 0)) {
-    seoScore -= 3
-    if (data.stopWordsURL.isTooLong) {
-      seoIssues.push(`La URL es muy larga (${data.stopWordsURL.urlLength} caracteres). Idealmente menos de 75.`)
-    }
-    if (data.stopWordsURL.stopWordsCount > 0) {
-      seoIssues.push(`La URL contiene palabras innecesarias: ${data.stopWordsURL.stopWords.join(', ')}.`)
-    }
-  }
-  
-  // Performance Score - Incluyendo TODAS las métricas
-  if (data.performance) {
-    if (data.performance.load > 3000) {
-      performanceScore -= 30
-      performanceIssues.push(`Tiempo de carga muy lento (${Math.round(data.performance.load)}ms). Idealmente menos de 3 segundos.`)
-    } else if (data.performance.load > 2000) {
-      performanceScore -= 20
-      performanceIssues.push(`Tiempo de carga lento (${Math.round(data.performance.load)}ms). Optimiza imágenes y reduce código.`)
-    } else if (data.performance.load > 1000) {
-      performanceScore -= 10
-      performanceIssues.push(`Tiempo de carga moderado (${Math.round(data.performance.load)}ms). Puede mejorarse.`)
-    }
-    
-    if (data.performance.dom > 1000) {
-      performanceScore -= 15
-      performanceIssues.push(`Procesamiento DOM lento (${Math.round(data.performance.dom)}ms). Reduce la complejidad del HTML.`)
-    }
-    
-    if (data.performance.response > 500) {
-      performanceScore -= 10
-      performanceIssues.push(`Respuesta del servidor lenta (${Math.round(data.performance.response)}ms).`)
-    }
-  }
-  
-  if (data.domDepth && data.domDepth.averageDepth > 15) {
-    performanceScore -= 15
-    performanceIssues.push(`El contenido está muy profundo en el DOM (${data.domDepth.averageDepth} niveles). Muchas capas de <div> ralentizan el renderizado.`)
-  } else if (data.domDepth && data.domDepth.averageDepth > 10) {
-    performanceScore -= 5
-    performanceIssues.push(`Profundidad DOM alta (${data.domDepth.averageDepth} niveles). Considera simplificar la estructura.`)
-  }
-  
-  if (data.lazyLoading && data.lazyLoading.nonLazyImages > 0) {
-    performanceScore -= 15
-    performanceIssues.push(`${data.lazyLoading.nonLazyImages} imagen(es) fuera de la pantalla no tienen loading="lazy". Esto afecta la velocidad inicial.`)
-  }
-  
-  if (data.textHTMLRatio && data.textHTMLRatio.ratio < 15) {
-    performanceScore -= 10
-    performanceIssues.push(`Ratio texto/HTML muy bajo (${data.textHTMLRatio.ratio}%). Hay demasiado código HTML comparado con contenido. Idealmente >15%.`)
-  } else if (data.textHTMLRatio && data.textHTMLRatio.ratio < 25) {
-    performanceScore -= 5
-    performanceIssues.push(`Ratio texto/HTML puede mejorarse (${data.textHTMLRatio.ratio}%). Idealmente >25%.`)
-  }
-  
-  if (data.iframes && data.iframes.count > 5) {
-    performanceScore -= 10
-    performanceIssues.push(`Muchos iframes (${data.iframes.count}). Pueden ralentizar la carga y el contenido podría no indexarse correctamente.`)
-  } else if (data.iframes && data.iframes.count > 3) {
-    performanceScore -= 5
-    performanceIssues.push(`${data.iframes.count} iframes detectados. Verifica que sean necesarios.`)
-  }
-  
-  // Content Score - Incluyendo TODAS las métricas
-  if (!data.text || data.text.length < 300) {
-    contentScore -= 30
-    contentIssues.push('Muy poco contenido visible en la página (menos de 300 caracteres). Google valora el contenido de calidad.')
-  } else if (data.text.length < 500) {
-    contentScore -= 15
-    contentIssues.push(`Poco contenido (${data.text.length} caracteres). Idealmente más de 500 caracteres.`)
-  }
-  
-  // Usar análisis de headers si está disponible
-  if (data.headers) {
-    if (data.headers.structure.hasMultipleH1) {
-      contentScore -= 30
-      contentIssues.push(`CRÍTICO: Hay ${data.headers.count.h1} etiquetas H1. Debe haber SOLO UNA. Múltiples H1 confunden a Google.`)
-    } else if (!data.headers.structure.hasH1) {
-      contentScore -= 25
-      contentIssues.push('CRÍTICO: Falta la etiqueta H1. Es fundamental para el SEO. Cada página debe tener exactamente UN H1.')
-    }
-    
-    if (!data.headers.structure.properHierarchy) {
-      contentScore -= 15
-      contentIssues.push('Los headers no siguen una jerarquía correcta (ej: H2 seguido de H4). Usa el orden H1 → H2 → H3.')
-    }
-    
-    if (!data.headers.structure.hasH2 && data.headers.count.total > 1) {
-      contentScore -= 10
-      contentIssues.push('No se encontraron H2. Los H2 ayudan a estructurar el contenido en secciones principales.')
-    }
-    
-    if (data.headers.issues.length > 0) {
-      data.headers.issues.forEach(issue => {
-        contentIssues.push(issue.message)
-      })
-    }
-    
-    if (data.headers.warnings.length > 0) {
-      data.headers.warnings.slice(0, 3).forEach(warning => {
-        if (warning.type === 'warning') {
-          contentIssues.push(warning.message)
-        }
-      })
-    }
-  } else {
-    // Fallback si no hay análisis de headers
-    const h1Count = document.querySelectorAll('h1').length
-    if (h1Count === 0) {
-      contentScore -= 25
-      contentIssues.push('Falta la etiqueta H1. Es fundamental para el SEO. Cada página debe tener un H1 único.')
-    } else if (h1Count > 1) {
-      contentScore -= 30
-      contentIssues.push(`Hay ${h1Count} etiquetas H1. Debe haber solo UNA por página.`)
-    }
-    
-    const h2Count = document.querySelectorAll('h2').length
-    if (h2Count === 0 && data.text && data.text.length > 500) {
-      contentScore -= 5
-      contentIssues.push('No se encontraron etiquetas H2. Usa H2 para estructurar el contenido.')
-    }
-  }
-  
-  if (data.accessibility && data.accessibility.issues.length > 0) {
-    const accessibilityPenalty = Math.min(30, data.accessibility.issues.length * 8)
-    contentScore -= accessibilityPenalty
-    data.accessibility.issues.forEach(issue => {
-      if (issue.type === 'font-size') {
-        contentIssues.push(`${issue.count} elemento(s) tienen fuente menor a 12px. Google penaliza texto pequeño en móviles.`)
-      } else if (issue.type === 'contrast') {
-        contentIssues.push(`${issue.count} elemento(s) tienen bajo contraste de color. Mínimo recomendado: 4.5:1.`)
-      } else if (issue.type === 'touch-target') {
-        contentIssues.push(`${issue.count} botón(es) son muy pequeños (<44x44px). Afecta la usabilidad móvil y Core Web Vitals.`)
-      }
-    })
-  }
-  
-  if (data.links && data.links.length < 5) {
-    contentScore -= 5
-    contentIssues.push('Muy pocos enlaces en la página. Los enlaces internos ayudan a la navegación y SEO.')
-  }
-  
-  if (data.internalAnchors && data.internalAnchors.count > 0 && data.internalAnchors.validCount < data.internalAnchors.count) {
-    contentScore -= 5
-    const invalid = data.internalAnchors.count - data.internalAnchors.validCount
-    contentIssues.push(`${invalid} enlace(s) interno(s) (#) apuntan a elementos que no existen. Google los usa para "Jump links".`)
-  }
-  
-  const finalSeoScore = Math.max(0, Math.min(100, seoScore))
-  const finalPerformanceScore = Math.max(0, Math.min(100, performanceScore))
-  const finalContentScore = Math.max(0, Math.min(100, contentScore))
-  const overall = Math.round((finalSeoScore + finalPerformanceScore + finalContentScore) / 3)
-  
-  // Agregar explicaciones positivas si el score es alto
-  const seoReasons = []
-  const performanceReasons = []
-  const contentReasons = []
-  
-  if (finalSeoScore >= 80) {
-    seoReasons.push('Excelente optimización técnica SEO')
-  } else if (finalSeoScore >= 60) {
-    seoReasons.push('Buena base SEO con algunos aspectos a mejorar')
-  } else {
-    seoReasons.push('SEO necesita mejoras significativas')
-  }
-  
-  if (finalPerformanceScore >= 80) {
-    performanceReasons.push('Velocidad de carga excelente')
-  } else if (finalPerformanceScore >= 60) {
-    performanceReasons.push('Rendimiento aceptable pero mejorable')
-  } else {
-    performanceReasons.push('Rendimiento necesita optimización urgente')
-  }
-  
-  if (finalContentScore >= 80) {
-    contentReasons.push('Contenido de calidad y bien estructurado')
-  } else if (finalContentScore >= 60) {
-    contentReasons.push('Contenido adecuado con espacio para mejoras')
-  } else {
-    contentReasons.push('El contenido necesita más desarrollo')
-  }
-  
-  return {
-    seo: finalSeoScore,
-    performance: finalPerformanceScore,
-    content: finalContentScore,
-    overall,
-    explanations: {
-      seo: {
-        reasons: seoReasons,
-        issues: seoIssues.length > 0 ? seoIssues : ['¡Excelente! No se encontraron problemas en SEO On-Page.']
-      },
-      performance: {
-        reasons: performanceReasons,
-        issues: performanceIssues.length > 0 ? performanceIssues : ['¡Excelente! El rendimiento es óptimo.']
-      },
-      content: {
-        reasons: contentReasons,
-        issues: contentIssues.length > 0 ? contentIssues : ['¡Excelente! El contenido está bien optimizado.']
-      }
-    }
-  }
-}
-
 function collectPageData() {
   const data = {
     url: window.location.href,
@@ -1281,13 +725,18 @@ function collectPageData() {
     text: link.textContent.trim()
   }))
 
+  data.imageCount = document.images.length
+  data.imageAltStats = analyzeImageAltInDocument(document)
+  data.outboundLinks = analyzeOutboundLinksInDocument(document, data.url)
+
   // Obtener texto visible de la página
   const bodyText = document.body.innerText || document.body.textContent || ''
   data.text = bodyText
 
   // Nuevas funcionalidades
   data.schemas = detectSchemas()
-  data.schemaRecommendations = checkSchemaRecommendations(data.schemas)
+  data.schemaRecommendations = checkSchemaRecommendationsLocal(data.schemas)
+  data.techStack = detectTechStack(document)
   data.accessibility = checkAccessibility()
   data.hiddenContent = detectHiddenContent()
   data.domDepth = analyzeDOMDepth()
@@ -1309,13 +758,33 @@ function collectPageData() {
   data.socialTags = analyzeCompleteSocialTags()
   data.titleWidth = measureTitleWidth()
   data.headers = analyzeHeaders()
-  
+  data.webVitals = collectWebVitalsSnapshot()
+  data.contentAnalysis = analyzeContentReadability(data, '')
+  data.analysisMode = 'full'
+
   data.scores = calculateScores(data)
 
   return data
 }
 
-async function getPageDataAsync() {
+/** Reduce payload para chrome.runtime.sendMessage (evita respuestas vacías). */
+function preparePageDataForMessage(data) {
+  const out = { ...data }
+  if (typeof out.text === 'string' && out.text.length > 100000) {
+    out.text = out.text.slice(0, 100000)
+    out.textTruncated = true
+  }
+  if (Array.isArray(out.links) && out.links.length > 400) {
+    out.links = out.links.slice(0, 400)
+    out.linksTruncated = true
+  }
+  if (Array.isArray(out.schemas)) {
+    out.schemas = compactSchemasForTransport(out.schemas)
+  }
+  return out
+}
+
+async function getPageDataAsync(options = {}) {
   const data = collectPageData()
   data.linkStats = computeLinkStats(data.links, data.url)
   try {
@@ -1325,21 +794,30 @@ async function getPageDataAsync() {
   }
   data.scannerValues = buildScannerValues(data, data.httpMeta || {})
   data.detectedSchemaTypes = extractDetectedTypes(data.schemas)
-  try {
-    applyHeaderVisualAudit()
-  } catch (e) {
-    console.warn('[RonHack SEO] resaltado de encabezados', e)
+  if (options.highlightHeaders) {
+    try {
+      applyHeaderVisualAudit()
+    } catch (e) {
+      console.warn('[RonHack SEO] resaltado de encabezados', e)
+    }
   }
   return data
 }
 
-// Escuchar mensajes del popup
+// Escuchar mensajes del popup — versión activa evita listeners huérfanos tras recargar extensión
+globalThis.__ronhackSeoListenerGen = (globalThis.__ronhackSeoListenerGen || 0) + 1
+const __ronhackListenerGen = globalThis.__ronhackSeoListenerGen
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (globalThis.__ronhackSeoListenerGen !== __ronhackListenerGen) return false
+
   if (request.action === 'getPageData') {
     ;(async () => {
       try {
-        const data = await getPageDataAsync()
-        sendResponse(data)
+        const data = await getPageDataAsync({
+          highlightHeaders: request.highlightHeaders === true,
+        })
+        sendResponse(preparePageDataForMessage(data))
       } catch (e) {
         console.error(e)
         sendResponse({ error: String(e && e.message ? e.message : e) })
@@ -1347,5 +825,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })()
     return true
   }
+
+  if (request.action === 'extractPaa') {
+    try {
+      sendResponse({ questions: extractPaaInPage() })
+    } catch (e) {
+      sendResponse({ questions: [], error: String(e?.message || e) })
+    }
+    return false
+  }
+
+  if (request.action === 'highlightContent') {
+    try {
+      const result = applyContentHighlights(request.issues || [])
+      sendResponse(result)
+    } catch (e) {
+      sendResponse({ applied: 0, error: String(e?.message || e) })
+    }
+    return false
+  }
+
+  if (request.action === 'clearContentHighlight') {
+    try {
+      removeContentHighlights()
+      sendResponse({ ok: true })
+    } catch (e) {
+      sendResponse({ ok: false })
+    }
+    return false
+  }
+
+  if (request.action === 'ping') {
+    sendResponse({ ok: true, gen: __ronhackListenerGen })
+    return false
+  }
+
   return false
 })
