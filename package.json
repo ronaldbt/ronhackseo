@@ -8,7 +8,8 @@
     "build": "vite build",
     "postbuild": "node scripts/postbuild.mjs",
     "preview": "vite preview",
-    "package:store": "node scripts/prepare-chrome-store.mjs"
+    "package:store": "node scripts/prepare-chrome-store.mjs",
+    "screenshots:store": "node scripts/generate-store-screenshots.mjs"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",

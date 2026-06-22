@@ -44,6 +44,6 @@ console.log('  → Contiene manifest.json en la raíz (estructura correcta para 
 console.log('')
 console.log('Para crear el ZIP en Windows (PowerShell):')
 console.log('  cd chrome-store-upload')
-console.log('  Compress-Archive -Path * -DestinationPath ..\\ronhack-seo-v1.0.0.zip -Force')
+console.log('  Compress-Archive -Path * -DestinationPath ..\\ronhack-seo-v1.0.1.zip -Force')
 console.log('')
-console.log('Sube ronhack-seo-v1.0.0.zip en Chrome Web Store → Package.')
+console.log('Sube ronhack-seo-v1.0.1.zip en Chrome Web Store → Package.')

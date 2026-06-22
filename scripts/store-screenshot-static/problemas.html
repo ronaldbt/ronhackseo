@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>RonHack SEO — Problemas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1280px;height:800px;overflow:hidden;font-family:Segoe UI,system-ui,sans-serif;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(16,185,129,.12),transparent 55%),linear-gradient(180deg,#060a0d,#0b1014);color:#e4e4e7;display:flex;justify-content:center;padding-top:24px}
+.frame{width:1180px;border:1px solid rgba(52,211,153,.35);border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.65)}
+.hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#060a0d;border-bottom:1px solid rgba(16,185,129,.45)}
+.logo{width:40px;height:40px;border:1px solid rgba(16,185,129,.4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-weight:700}
+.title{font-family:Consolas,monospace;font-size:1.45rem;font-weight:700;flex:1}
+.ver{font-size:11px;font-weight:700;color:#6ee7b7;border:1px solid rgba(16,185,129,.45);border-radius:999px;padding:3px 9px;background:rgba(6,78,59,.35)}
+.btn{border:1px solid rgba(16,185,129,.5);background:rgba(6,78,59,.85);color:#ecfdf5;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600}
+.nav{display:flex;background:linear-gradient(180deg,#070b0f,#0a1210);border-bottom:1px solid rgba(6,78,59,.45);font-size:11px;font-weight:600}
+.nav span{flex:1;text-align:center;padding:9px 4px;color:#a1a1aa;border-bottom:2px solid transparent}
+.nav span.on{color:#a7f3d0;border-bottom-color:#34d399}
+.main{padding:16px;background:#0b1014;font-size:12px}
+.hint{margin-bottom:10px;font-size:11px;color:#a1a1aa}
+.badges{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.badges span{border:1px solid #52525b;background:rgba(39,39,42,.9);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:600}
+.badges .a{border-color:rgba(16,185,129,.5);background:rgba(6,78,59,.5);color:#a7f3d0}
+table{width:100%;border-collapse:collapse;border:1px solid rgba(16,185,129,.2);border-radius:8px;overflow:hidden;font-size:11px}
+th{background:rgba(24,24,27,.95);color:#d4d4d8;padding:9px;text-align:left;border-bottom:1px solid rgba(16,185,129,.2)}
+td{padding:9px;border-bottom:1px solid rgba(39,39,42,.8);color:#e4e4e7;vertical-align:top}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.det{font-family:Consolas,monospace;font-size:9px;color:#71717a;margin-top:4px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dr{background:#dc2626}.da{background:#fbbf24}
+.emerald{color:#34d399}.cyan{color:#67e8f9}.zinc{color:#52525b}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="hdr">
+    <div class="logo"><span class="emerald">&gt;</span><span class="cyan">_</span></div>
+    <div class="title"><span class="emerald">RonHack</span> <span class="cyan">SEO</span></div>
+    <span class="ver">v1.0.1</span>
+    <button class="btn">Re-analizar</button>
+  </div>
+  <div class="nav">
+    <span>Resumen</span><span>Keywords</span><span>SERP Local</span><span>Datos estruct.</span><span class="on">Problemas</span><span>Spider</span>
+  </div>
+  <div class="main">
+    <p class="hint">Hallazgos del <strong>último rastreo</strong> (duplicados, 404, 500, headers) y reglas de <strong>esta URL</strong>.</p>
+    <div class="badges"><span>Problemas 6</span><span>Avisos 3</span><span>Oportunidades 1</span><span class="a">Total 10</span></div>
+    <table>
+      <thead><tr><th>Nombre del problema</th><th>Tipo</th><th>Prioridad</th><th>URL</th><th>% del total</th></tr></thead>
+      <tbody>
+        <tr><td><div>HTTP 404 (Not Found): 3</div><div class="det">https://ejemplo.com/vieja | https://ejemplo.com/blog/2020</div></td><td><span class="dot dr"></span>Problema</td><td>Alta</td><td class="num">3</td><td class="num">4,29</td></tr>
+        <tr><td><div>HTTP 500 (Internal Server Error): 1</div><div class="det">https://ejemplo.com/api/legacy</div></td><td><span class="dot dr"></span>Problema</td><td>Alta</td><td class="num">1</td><td class="num">1,43</td></tr>
+        <tr><td>HTTP 400 (Bad Request): 2</td><td><span class="dot dr"></span>Problema</td><td>Media</td><td class="num">2</td><td class="num">2,86</td></tr>
+        <tr><td>Títulos duplicados (2 URLs): «Contacto — RonHack SEO»</td><td><span class="dot da"></span>Aviso</td><td>Media</td><td class="num">2</td><td class="num">2,86</td></tr>
+        <tr><td>Falta encabezado Content-Security-Policy</td><td><span class="dot da"></span>Aviso</td><td>Media</td><td class="num">58</td><td class="num">82,86</td></tr>
+        <tr><td>URLs con más de un H1: 4</td><td><span class="dot dr"></span>Problema</td><td>Alta</td><td class="num">4</td><td class="num">5,71</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

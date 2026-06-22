@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>RonHack SEO — Spider</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1280px;height:800px;overflow:hidden;font-family:Segoe UI,system-ui,sans-serif;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(16,185,129,.12),transparent 55%),linear-gradient(180deg,#060a0d,#0b1014);color:#e4e4e7;display:flex;justify-content:center;padding-top:24px}
+.frame{width:1180px;border:1px solid rgba(52,211,153,.35);border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.65)}
+.hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#060a0d;border-bottom:1px solid rgba(16,185,129,.45)}
+.logo{width:40px;height:40px;border:1px solid rgba(16,185,129,.4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Consolas,monospace;font-weight:700}
+.title{font-family:Consolas,monospace;font-size:1.45rem;font-weight:700;flex:1}
+.ver{font-size:11px;font-weight:700;color:#6ee7b7;border:1px solid rgba(16,185,129,.45);border-radius:999px;padding:3px 9px;background:rgba(6,78,59,.35)}
+.btn{border:1px solid rgba(16,185,129,.5);background:rgba(6,78,59,.85);color:#ecfdf5;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600}
+.nav{display:flex;background:linear-gradient(180deg,#070b0f,#0a1210);border-bottom:1px solid rgba(6,78,59,.45);font-size:11px;font-weight:600}
+.nav span{flex:1;text-align:center;padding:9px 4px;color:#a1a1aa;border-bottom:2px solid transparent}
+.nav span.on{color:#a7f3d0;border-bottom-color:#34d399}
+.main{padding:10px;background:#0b1014;font-size:10px}
+.toolbar{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.url{flex:1;border:1px solid rgba(16,185,129,.35);background:#09090b;border-radius:6px;padding:6px 8px;font-family:Consolas,monospace;color:#e4e4e7}
+.tb{border:1px solid #3f3f46;background:#18181b;border-radius:6px;padding:5px 9px;color:#e4e4e7;font-weight:600}
+.tb.p{background:rgba(6,78,59,.85);border-color:rgba(16,185,129,.5);color:#ecfdf5}
+.tb.a{border-color:rgba(56,189,248,.4);color:#7dd3fc}
+.filters{display:flex;gap:10px;margin-bottom:8px;font-weight:600;color:#71717a}
+.filters .on{color:#6ee7b7;border-bottom:2px solid #10b981;padding-bottom:2px}
+.body{display:grid;grid-template-columns:1fr 210px;gap:8px}
+.grid{border:1px solid rgba(16,185,129,.2);border-radius:8px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{background:#064e3b;color:#d1fae5;padding:5px 6px;text-align:left;font-weight:600}
+td{padding:4px 6px;border-bottom:1px solid rgba(39,39,42,.8);color:#d4d4d8}
+tr.sel{background:rgba(16,185,129,.18)}
+.err{color:#f87171;font-weight:700}.warn{color:#fbbf24}.ok{color:#6ee7b7}
+.side{border:1px solid rgba(16,185,129,.15);border-radius:8px;padding:8px;background:rgba(9,9,11,.55)}
+.st{font-size:9px;font-weight:700;text-transform:uppercase;color:#6ee7b7;margin-bottom:6px}
+.sec{margin-top:8px;border-top:1px solid rgba(39,39,42,.6);padding-top:4px}
+.sh{font-weight:700;color:#d4d4d8;margin-bottom:4px}
+.r{display:grid;grid-template-columns:1fr 24px 40px;gap:2px;padding:2px;text-align:right;color:#d4d4d8}
+.r span:first-child{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r.act{background:rgba(16,185,129,.22);border-radius:3px}
+.emerald{color:#34d399}.cyan{color:#67e8f9}.zinc{color:#52525b}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="hdr">
+    <div class="logo"><span class="emerald">&gt;</span><span class="cyan">_</span></div>
+    <div class="title"><span class="emerald">RonHack</span> <span class="cyan">SEO</span></div>
+    <span class="ver">v1.0.1</span>
+    <button class="btn">Re-analizar</button>
+  </div>
+  <div class="nav">
+    <span>Resumen</span><span>Keywords</span><span>SERP Local</span><span>Datos estruct.</span><span>Problemas</span><span class="on">Spider</span>
+  </div>
+  <div class="main">
+    <div class="toolbar">
+      <input class="url" value="https://ejemplo.com/" readonly />
+      <span class="tb p">Empezar</span><span class="tb">Detener</span><span class="tb">CSV</span><span class="tb">PDF</span><span class="tb a">Pantalla completa</span>
+    </div>
+    <div class="filters"><span class="on">Internas 70</span><span>HTML 52</span><span>Errores 4</span><span>No index 2</span></div>
+    <div class="body">
+      <div class="grid"><table>
+        <thead><tr><th>#</th><th>URL</th><th>Código</th><th>Título</th><th>Indexabilidad</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>https://ejemplo.com/</td><td class="ok">200</td><td>Inicio — RonHack SEO</td><td>Indexable</td></tr>
+          <tr class="sel"><td>2</td><td>https://ejemplo.com/servicios/seo</td><td class="ok">200</td><td>Auditoría SEO profesional</td><td>Indexable</td></tr>
+          <tr><td>3</td><td>https://ejemplo.com/vieja</td><td class="err">404</td><td>—</td><td>—</td></tr>
+          <tr><td>4</td><td>https://ejemplo.com/blog</td><td class="warn">301</td><td>—</td><td>—</td></tr>
+          <tr><td>5</td><td>https://ejemplo.com/api/legacy</td><td class="err">500</td><td>—</td><td>—</td></tr>
+          <tr><td>6</td><td>https://ejemplo.com/contacto</td><td class="ok">200</td><td>Contacto — RonHack SEO</td><td>Indexable</td></tr>
+        </tbody>
+      </table></div>
+      <aside class="side">
+        <div class="st">Descripción general</div>
+        <div class="sec"><div class="sh">▼ Seguridad</div>
+          <div class="r"><span>Todo</span><span>70</span><span>100%</span></div>
+          <div class="r"><span>URL HTTPS</span><span>70</span><span>100%</span></div>
+          <div class="r"><span>Falta HSTS</span><span>58</span><span>82,86%</span></div>
+          <div class="r"><span>Falta CSP</span><span>58</span><span>82,86%</span></div>
+        </div>
+        <div class="sec"><div class="sh">▼ Códigos de respuesta</div>
+          <div class="r"><span>Completado (2xx)</span><span>52</span><span>74,29%</span></div>
+          <div class="r"><span>Redirección (3xx)</span><span>12</span><span>17,14%</span></div>
+          <div class="r act"><span>HTTP 404</span><span>3</span><span>4,29%</span></div>
+          <div class="r"><span>HTTP 500</span><span>1</span><span>1,43%</span></div>
+        </div>
+        <div class="sec"><div class="sh">▼ Problemas</div>
+          <div class="r act"><span>HTTP 404 (Not Found)</span><span>3</span><span>4,29%</span></div>
+          <div class="r"><span>HTTP 500 (Internal…)</span><span>1</span><span>1,43%</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</body>
+</html>
