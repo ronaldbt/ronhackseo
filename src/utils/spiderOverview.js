@@ -243,7 +243,10 @@ export function buildIssuesOverview(results) {
       issueRef: iss,
       predicate: (row) => {
         if (iss.urlList?.length) return iss.urlList.includes(row.url)
-        if (iss.issueId === 'status_404') return rowStatus(row) === 404
+        if (iss.issueId?.startsWith('status_')) {
+          const code = iss.issueId.slice('status_'.length)
+          if (/^\d+$/.test(code)) return String(rowStatus(row)) === code
+        }
         if (iss.issueId === 'multi_h1') return (row.h1Count ?? 0) > 1
         if (iss.issueId === 'empty_title') {
           const t = (row.scannerValues?.[SCAN_COL.TITLE] || row.title || '').trim()

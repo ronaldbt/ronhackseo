@@ -13,6 +13,30 @@ function norm(s) {
     .replace(/\s+/g, ' ')
 }
 
+function rowHttpStatus(r) {
+  const s = Number(r.status ?? r.scannerValues?.[2] ?? 0)
+  return Number.isFinite(s) ? s : 0
+}
+
+const HTTP_STATUS_LABELS = {
+  400: 'HTTP 400 (Bad Request)',
+  401: 'HTTP 401 (Unauthorized)',
+  403: 'HTTP 403 (Forbidden)',
+  404: 'HTTP 404 (Not Found)',
+  410: 'HTTP 410 (Gone)',
+  429: 'HTTP 429 (Too Many Requests)',
+  500: 'HTTP 500 (Internal Server Error)',
+  502: 'HTTP 502 (Bad Gateway)',
+  503: 'HTTP 503 (Service Unavailable)',
+  504: 'HTTP 504 (Gateway Timeout)',
+}
+
+function httpIssuePriority(code) {
+  if (code >= 500) return 'Alta'
+  if (code === 404 || code === 410) return 'Alta'
+  return 'Media'
+}
+
 /**
  * @param {Array<{ url: string, status: number, scannerValues?: string[], h1Count?: number }>} results
  * @returns {{ issues: Array<{ nombre: string, tipo: string, prioridad: string, urls: number, pct: string }>, summary: object }}
@@ -27,8 +51,10 @@ export function analyzeCrawlResults(results) {
     return r.crawlRowKind == null
   })
   const total = pages.length || 1
+  const totalCrawled = (results || []).length || 1
 
   const pct = (n) => `${((n / total) * 100).toFixed(2).replace('.', ',')}`
+  const pctCrawled = (n) => `${((n / totalCrawled) * 100).toFixed(2).replace('.', ',')}`
 
   const byTitle = new Map()
   const byH1 = new Map()
@@ -130,43 +156,29 @@ export function analyzeCrawlResults(results) {
     })
   }
 
-  const status404Pages = (results || []).filter((r) => r.status === 404)
-  const status404 = status404Pages.length
-  if (status404 > 0) {
-    issues.push({
-      issueId: 'status_404',
-      nombre: `Respuestas 404 encontradas: ${status404}`,
-      tipo: 'Problema',
-      prioridad: 'Alta',
-      urls: status404,
-      pct: pct(status404),
-      urlList: status404Pages.map((r) => r.url),
-    })
+  const byErrorCode = new Map()
+  for (const r of results || []) {
+    const code = rowHttpStatus(r)
+    if (code >= 400) {
+      if (!byErrorCode.has(code)) byErrorCode.set(code, [])
+      byErrorCode.get(code).push(r)
+    }
   }
 
-  const status5xxPages = (results || []).filter((r) => r.status >= 500)
-  if (status5xxPages.length > 0) {
+  for (const [code, codePages] of [...byErrorCode.entries()].sort((a, b) => a[0] - b[0])) {
+    const label = HTTP_STATUS_LABELS[code] || `HTTP ${code}`
     issues.push({
-      issueId: 'status_5xx',
-      nombre: `Errores 5xx: ${status5xxPages.length}`,
+      issueId: `status_${code}`,
+      nombre: `${label}: ${codePages.length}`,
       tipo: 'Problema',
-      prioridad: 'Alta',
-      urls: status5xxPages.length,
-      pct: pct(status5xxPages.length),
-      urlList: status5xxPages.map((r) => r.url),
-    })
-  }
-
-  const status4xxPages = (results || []).filter((r) => r.status >= 400 && r.status < 500)
-  if (status4xxPages.length > 0) {
-    issues.push({
-      issueId: 'status_4xx',
-      nombre: `Errores 4xx: ${status4xxPages.length}`,
-      tipo: 'Problema',
-      prioridad: 'Alta',
-      urls: status4xxPages.length,
-      pct: pct(status4xxPages.length),
-      urlList: status4xxPages.map((r) => r.url),
+      prioridad: httpIssuePriority(code),
+      urls: codePages.length,
+      pct: pctCrawled(codePages.length),
+      urlList: codePages.map((r) => r.url),
+      detalle: codePages
+        .slice(0, 6)
+        .map((r) => r.url)
+        .join(' | '),
     })
   }
 

@@ -8,7 +8,8 @@
           type="text"
           class="spider-url-input"
           placeholder="https://ejemplo.com/"
-          readonly
+          :readonly="!fullscreen"
+          @keydown.enter="startCrawl"
         />
         <button type="button" class="spider-btn spider-btn-primary" :disabled="starting || state.siteCrawlRunning || !canCrawl" @click="startCrawl">
           {{ starting ? '…' : 'Empezar' }}
@@ -541,8 +542,17 @@ function openFullscreen() {
 }
 
 onMounted(async () => {
-  if (!props.fullscreen) await loadActiveTabUrl()
   await refreshState()
+  if (props.fullscreen) {
+    if (!seedUrl.value) {
+      seedUrl.value =
+        props.pageData?.url ||
+        (state.siteCrawlHost ? `https://${state.siteCrawlHost}/` : '')
+    }
+    if (!seedUrl.value) await loadActiveTabUrl()
+  } else {
+    await loadActiveTabUrl()
+  }
   pollTimer = setInterval(refreshState, 600)
 })
 
