@@ -26,6 +26,7 @@ export default defineManifest({
       48: 'public/icon-48.png',
     },
   },
+  options_page: 'spider.html',
   content_scripts: [
     {
       matches: ['<all_urls>'],

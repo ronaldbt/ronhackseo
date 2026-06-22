@@ -80,12 +80,8 @@
         <p class="font-medium text-zinc-400">Analizando página...</p>
       </div>
 
-      <div v-else-if="activeTab === 'sitio'" class="p-4">
-        <SiteCrawlTab />
-      </div>
-
-      <div v-else-if="activeTab === 'crawlResumen'" class="p-4">
-        <CrawlSummaryTab />
+      <div v-else-if="activeTab === 'spider'" class="p-2">
+        <SpiderTab :page-data="pageData" />
       </div>
 
       <div v-else-if="activeTab === 'keywords'" class="p-4">
@@ -315,10 +311,6 @@
       <div v-if="activeTab === 'problemas'" class="rh-panel p-4">
         <ProblemsTab :page-data="pageData" />
       </div>
-
-      <div v-if="activeTab === 'scanner'" class="rh-panel p-4">
-        <ScannerTab :scanner-values="pageData.scannerValues" />
-      </div>
       </div>
     </div>
   </div>
@@ -355,9 +347,7 @@ import LinkChecker from './components/LinkChecker.vue'
 import ColorblindSimulator from './components/ColorblindSimulator.vue'
 import StructuredDataTab from './components/StructuredDataTab.vue'
 import ProblemsTab from './components/ProblemsTab.vue'
-import ScannerTab from './components/ScannerTab.vue'
-import SiteCrawlTab from './components/SiteCrawlTab.vue'
-import CrawlSummaryTab from './components/CrawlSummaryTab.vue'
+import SpiderTab from './components/SpiderTab.vue'
 import KeywordsTab from './components/KeywordsTab.vue'
 import GeoSerpTab from './components/GeoSerpTab.vue'
 import WebVitalsPanel from './components/WebVitalsPanel.vue'
@@ -384,9 +374,7 @@ const tabs = [
   { id: 'geo', label: 'SERP Local' },
   { id: 'schema', label: 'Datos estruct.' },
   { id: 'problemas', label: 'Problemas' },
-  { id: 'scanner', label: 'Escáner' },
-  { id: 'sitio', label: 'Sitio' },
-  { id: 'crawlResumen', label: 'Rastreo' },
+  { id: 'spider', label: 'Spider' },
 ]
 
 const loading = ref(false)
@@ -450,7 +438,7 @@ async function savePageCache(data) {
 }
 
 function isTabDisabled(tab) {
-  if (tab.id === 'sitio' || tab.id === 'crawlResumen' || tab.id === 'keywords' || tab.id === 'geo') return false
+  if (tab.id === 'spider' || tab.id === 'keywords' || tab.id === 'geo') return false
   if (tab.id === 'problemas') return !pageData.value && crawlIssueCount.value === 0
   return !pageData.value
 }

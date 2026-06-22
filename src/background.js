@@ -111,6 +111,56 @@ function extractLinksFromDom(html, pageUrl, seedUrl) {
   return [...out]
 }
 
+/** Todos los enlaces http(s) de una página: internos (mismo sitio) y externos. */
+function extractAllOutlinks(html, pageUrl, seedUrl) {
+  const internal = new Set()
+  const external = new Set()
+  let seedHost = ''
+  try {
+    seedHost = new URL(seedUrl).hostname.toLowerCase()
+  } catch {
+    return { internal: [], external: [] }
+  }
+
+  const collect = (href) => {
+    if (!href || href.startsWith('#') || href.toLowerCase().startsWith('javascript:')) return
+    try {
+      const abs = new URL(href, pageUrl)
+      if (abs.protocol !== 'http:' && abs.protocol !== 'https:') return
+      abs.hash = ''
+      const norm = abs.href
+      const h = abs.hostname.toLowerCase()
+      const same =
+        h === seedHost ||
+        h.replace(/^www\./, '') === seedHost.replace(/^www\./, '')
+      if (same) {
+        const canon = canonicalInternalUrl(norm, seedUrl)
+        if (canon) internal.add(canon)
+      } else {
+        external.add(norm)
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  let doc
+  try {
+    doc = new DOMParser().parseFromString(html, 'text/html')
+    doc.querySelectorAll('a[href], area[href]').forEach((el) => collect(el.getAttribute('href')))
+  } catch {
+    /* ignore */
+  }
+
+  const reQuoted = /\bhref\s*=\s*(["'])([^"']*?)\1/gi
+  let m
+  while ((m = reQuoted.exec(html)) !== null) collect(m[2])
+  const reUnquoted = /\bhref\s*=\s*([^\s"'=<>`]+)/gi
+  while ((m = reUnquoted.exec(html)) !== null) collect(m[1])
+
+  return { internal: [...internal], external: [...external] }
+}
+
 /**
  * Respaldo: href en HTML crudo (SPA con poco DOM, plantillas, etc.).
  * @param {string} html
@@ -234,6 +284,7 @@ async function runCrawl(seedUrl) {
   const queuedSet = new Set()
   const processed = new Set()
   const results = []
+  const crawlStartedAt = Date.now()
 
   function enqueue(u) {
     if (processed.has(u) || queuedSet.has(u)) return
@@ -287,6 +338,8 @@ async function runCrawl(seedUrl) {
     let h1Count = 0
     let crawlRowKind = 'other'
     let text = ''
+    let outlinksInternal = []
+    let outlinksExternal = []
 
     try {
       const r = await fetch(url, {
@@ -331,6 +384,9 @@ async function runCrawl(seedUrl) {
           const domLinks = extractLinksFromDom(text, url, crawlBase)
           const rxLinks = extractLinksFromRegex(text, url, crawlBase)
           const links = mergeUniqueUrls(domLinks, rxLinks)
+          const allOut = extractAllOutlinks(text, url, crawlBase)
+          outlinksInternal = allOut.internal
+          outlinksExternal = allOut.external
           for (const next of links) {
             if (processed.size + queue.length >= MAX_URLS) break
             enqueue(next)
@@ -368,7 +424,12 @@ async function runCrawl(seedUrl) {
       scannerValues,
       h1Count,
       crawlRowKind,
+      outlinksInternal,
+      outlinksExternal,
     })
+
+    const elapsedSec = Math.max(0.5, (Date.now() - crawlStartedAt) / 1000)
+    const urlsPerSec = Math.round((results.length / elapsedSec) * 100) / 100
 
     const denom = Math.max(1, results.length + queue.length)
     const queuePct = Math.min(100, Math.round((results.length / denom) * 100))
@@ -386,6 +447,8 @@ async function runCrawl(seedUrl) {
         max: MAX_URLS,
         queuePct,
         finishReason: null,
+        urlsPerSec,
+        startedAt: crawlStartedAt,
       },
     })
 
