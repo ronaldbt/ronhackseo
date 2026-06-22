@@ -47,6 +47,10 @@
         </button>
       </div>
       <input v-model="searchQuery" type="search" class="spider-search" placeholder="Buscar URL o texto…" />
+      <div v-if="sidebarFilterId" class="spider-overview-chip">
+        <span>Filtro: {{ activeOverviewLabel }}</span>
+        <button type="button" class="spider-chip-clear" title="Quitar filtro" @click="clearOverviewFilter">✕</button>
+      </div>
     </div>
 
     <p v-if="state.siteCrawlError" class="spider-error">{{ state.siteCrawlError }}</p>
@@ -92,26 +96,70 @@
 
       <aside class="spider-sidebar">
         <div class="spider-side-title">Descripción general</div>
+
         <div v-if="summary" class="spider-side-stats">
           <div class="spider-stat"><span>URLs rastreadas</span><strong>{{ summary.totalUrls }}</strong></div>
           <div class="spider-stat"><span>HTML 200</span><strong>{{ summary.htmlOk }}</strong></div>
           <div class="spider-stat"><span>Internas</span><strong>{{ stats.internal }}</strong></div>
           <div class="spider-stat"><span>Externas (enlaces)</span><strong>{{ stats.external }}</strong></div>
-          <div class="spider-stat"><span>Títulos dup.</span><strong class="text-amber-400">{{ summary.duplicateTitleGroups }}</strong></div>
-          <div class="spider-stat"><span>H1 dup.</span><strong class="text-amber-400">{{ summary.duplicateH1Groups }}</strong></div>
-          <div class="spider-stat"><span>Problemas</span><strong class="text-red-400">{{ summary.issuesCount ?? issues.length }}</strong></div>
         </div>
         <p v-else class="spider-side-hint">Inicia un rastreo o usa «Página actual».</p>
 
-        <div v-if="issues.length" class="spider-issues-block">
-          <div class="spider-side-title mt-3">Hallazgos</div>
-          <ul class="spider-issues-list">
-            <li v-for="(iss, i) in issues.slice(0, 8)" :key="i">
-              <span class="spider-issue-name">{{ iss.nombre }}</span>
-              <span class="spider-issue-count">{{ iss.urls }}</span>
-            </li>
-          </ul>
-        </div>
+        <template v-if="hasCrawlData">
+          <div
+            v-for="section in overviewSections"
+            :key="section.id"
+            class="spider-overview-section"
+          >
+            <button
+              type="button"
+              class="spider-overview-header"
+              @click="toggleOverviewSection(section.id)"
+            >
+              <span class="spider-triangle" :class="{ collapsed: !expandedSections[section.id] }">▼</span>
+              {{ section.title }}
+            </button>
+
+            <div v-show="expandedSections[section.id]" class="spider-overview-body">
+              <div v-if="section.subtitle" class="spider-overview-sub">{{ section.subtitle }}</div>
+
+              <div class="spider-overview-table-head">
+                <span></span>
+                <span>#</span>
+                <span>%</span>
+              </div>
+
+              <button
+                v-for="item in section.items"
+                :key="item.id"
+                type="button"
+                class="spider-overview-row"
+                :class="{ active: sidebarFilterId === item.id, zero: item.count === 0 }"
+                @click="onOverviewClick(item.id)"
+              >
+                <span class="spider-overview-label" :title="item.label">{{ item.label }}</span>
+                <span class="spider-overview-count">{{ item.count }}</span>
+                <span class="spider-overview-pct">{{ item.pct }}</span>
+              </button>
+
+              <template v-if="section.codeItems?.length">
+                <div class="spider-overview-sub spider-overview-codes">Por código HTTP</div>
+                <button
+                  v-for="item in section.codeItems"
+                  :key="item.id"
+                  type="button"
+                  class="spider-overview-row spider-overview-row-code"
+                  :class="{ active: sidebarFilterId === item.id, zero: item.count === 0 }"
+                  @click="onOverviewClick(item.id)"
+                >
+                  <span class="spider-overview-label">{{ item.label }}</span>
+                  <span class="spider-overview-count">{{ item.count }}</span>
+                  <span class="spider-overview-pct">{{ item.pct }}</span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
       </aside>
     </div>
 
@@ -176,6 +224,10 @@ import {
   deriveSummary,
   deriveIssues,
 } from '../utils/spiderHelpers.js'
+import {
+  buildSpiderOverviewSections,
+  applyOverviewFilter,
+} from '../utils/spiderOverview.js'
 
 const props = defineProps({
   pageData: { type: Object, default: null },
@@ -187,6 +239,12 @@ const starting = ref(false)
 const activeFilter = ref('internal')
 const searchQuery = ref('')
 const selectedRow = ref(null)
+const sidebarFilterId = ref(null)
+const expandedSections = reactive({
+  security: true,
+  response: true,
+  issues: true,
+})
 
 const state = reactive({
   siteCrawlRunning: false,
@@ -216,12 +274,22 @@ const expandedCrawl = computed(() =>
   expandWithExternalLinks(state.siteCrawlResults, state.siteCrawlHost),
 )
 
+const overviewSections = computed(() =>
+  buildSpiderOverviewSections(state.siteCrawlResults, state.siteCrawlHost),
+)
+
 const baseRows = computed(() => {
+  let pool
   if (activeFilter.value === 'current') {
-    return currentPageRow.value ? [currentPageRow.value] : []
+    pool = currentPageRow.value ? [currentPageRow.value] : []
+  } else {
+    const raw = activeFilter.value === 'external' ? expandedCrawl.value.all : expandedCrawl.value.internal
+    pool = filterSpiderRows(raw, activeFilter.value, state.siteCrawlHost)
   }
-  const pool = activeFilter.value === 'external' ? expandedCrawl.value.all : expandedCrawl.value.internal
-  return filterSpiderRows(pool, activeFilter.value, state.siteCrawlHost)
+  if (sidebarFilterId.value) {
+    pool = applyOverviewFilter(pool, sidebarFilterId.value, overviewSections.value)
+  }
+  return pool
 })
 
 const displayRows = computed(() => searchRows(baseRows.value, searchQuery.value))
@@ -248,6 +316,16 @@ const summary = computed(() =>
 const issues = computed(() =>
   deriveIssues(state.siteCrawlResults, state.siteCrawlIssues, state.siteCrawlSummary, state.siteCrawlProgress),
 )
+
+const activeOverviewLabel = computed(() => {
+  if (!sidebarFilterId.value) return ''
+  for (const sec of overviewSections.value) {
+    for (const item of [...(sec.items || []), ...(sec.codeItems || [])]) {
+      if (item.id === sidebarFilterId.value) return item.label
+    }
+  }
+  return ''
+})
 
 const stats = computed(() => ({
   internal: expandedCrawl.value.internal.length,
@@ -284,6 +362,9 @@ const statusCountLabel = computed(() => {
 })
 
 const emptyMessage = computed(() => {
+  if (sidebarFilterId.value && !displayRows.value.length) {
+    return `Sin URLs para «${activeOverviewLabel.value}».`
+  }
   if (activeFilter.value === 'current' && !currentPageRow.value) {
     return 'Analiza la página en Resumen primero (content script activo).'
   }
@@ -319,6 +400,27 @@ function rowKey(row, i) {
 
 function selectRow(row) {
   selectedRow.value = row
+}
+
+function toggleOverviewSection(id) {
+  expandedSections[id] = !expandedSections[id]
+}
+
+function onOverviewClick(itemId) {
+  if (sidebarFilterId.value === itemId) {
+    sidebarFilterId.value = null
+  } else {
+    sidebarFilterId.value = itemId
+    if (activeFilter.value === 'external' || activeFilter.value === 'current') {
+      activeFilter.value = 'internal'
+    }
+  }
+  selectedRow.value = null
+}
+
+function clearOverviewFilter() {
+  sidebarFilterId.value = null
+  selectedRow.value = null
 }
 
 async function refreshState() {
@@ -374,6 +476,7 @@ function startCrawl() {
       else if (res?.ok === false) state.siteCrawlError = res.error || 'No se pudo iniciar'
       starting.value = false
       activeFilter.value = 'internal'
+      sidebarFilterId.value = null
       void refreshState()
     })
   })
@@ -394,6 +497,7 @@ async function clearStored() {
     'siteCrawlError', 'siteCrawlStartedAt', 'siteCrawlFinishedAt', 'siteCrawlIssues', 'siteCrawlSummary',
   ])
   selectedRow.value = null
+  sidebarFilterId.value = null
   await refreshState()
 }
 
@@ -610,7 +714,7 @@ watch(
 
 .spider-body {
   display: grid;
-  grid-template-columns: 1fr 148px;
+  grid-template-columns: 1fr 210px;
   gap: 8px;
   min-height: 0;
   flex: 1;
@@ -735,6 +839,150 @@ watch(
 .spider-stat strong {
   color: #f4f4f5;
   font-weight: 700;
+}
+
+.spider-overview-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(6, 78, 59, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  font-size: 9px;
+  color: #a7f3d0;
+  max-width: 100%;
+}
+
+.spider-overview-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spider-chip-clear {
+  border: none;
+  background: transparent;
+  color: #6ee7b7;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.spider-overview-section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(39, 39, 42, 0.6);
+  padding-top: 6px;
+}
+
+.spider-overview-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 2px 0 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #d4d4d8;
+  cursor: pointer;
+  text-align: left;
+}
+
+.spider-triangle {
+  font-size: 7px;
+  color: #71717a;
+  transition: transform 0.15s;
+}
+
+.spider-triangle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.spider-overview-body {
+  padding-left: 2px;
+}
+
+.spider-overview-sub {
+  font-size: 8px;
+  color: #71717a;
+  margin: 2px 0 4px;
+  font-style: italic;
+}
+
+.spider-overview-codes {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(63, 63, 70, 0.5);
+}
+
+.spider-overview-table-head {
+  display: grid;
+  grid-template-columns: 1fr 28px 42px;
+  gap: 2px;
+  font-size: 7px;
+  color: #52525b;
+  text-align: right;
+  padding: 0 2px 2px;
+}
+
+.spider-overview-table-head span:first-child {
+  text-align: left;
+}
+
+.spider-overview-row {
+  display: grid;
+  grid-template-columns: 1fr 28px 42px;
+  gap: 2px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 2px;
+  font-size: 8px;
+  color: #d4d4d8;
+  cursor: pointer;
+  text-align: right;
+  border-radius: 3px;
+}
+
+.spider-overview-row:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.spider-overview-row.active {
+  background: rgba(16, 185, 129, 0.22);
+  color: #ecfdf5;
+}
+
+.spider-overview-row.zero {
+  opacity: 0.55;
+}
+
+.spider-overview-label {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spider-overview-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.spider-overview-pct {
+  font-variant-numeric: tabular-nums;
+  color: #a1a1aa;
+}
+
+.spider-overview-row.active .spider-overview-pct {
+  color: #bbf7d0;
+}
+
+.spider-overview-row-code .spider-overview-label {
+  padding-left: 6px;
 }
 
 .spider-issues-list {

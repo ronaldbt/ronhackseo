@@ -4,6 +4,7 @@ import { SCANNER_COLUMNS } from './constants/scannerColumns.js'
 import { buildPlaceholderScannerRow, buildScannerValuesFromHtml, countH1InHtml } from './utils/scannerRow.js'
 import { analyzeCrawlResults } from './utils/crawlDuplicateAnalysis.js'
 import { fetchAllKeywordSuggestions } from './utils/keywordSuggest.js'
+import { attachSecurityToRow } from './utils/spiderOverview.js'
 
 const MAX_URLS = 1000
 const DELAY_MS = 150
@@ -340,23 +341,44 @@ async function runCrawl(seedUrl) {
     let text = ''
     let outlinksInternal = []
     let outlinksExternal = []
+    let responseHeaders = {}
+    let redirectLocation = ''
 
     try {
       const r = await fetch(url, {
         method: 'GET',
         credentials: 'omit',
-        redirect: 'follow',
+        redirect: 'manual',
         cache: 'no-store',
       })
       status = r.status
       contentType = r.headers.get('content-type') || ''
       statusText = r.statusText || ''
+      redirectLocation = r.headers.get('location') || ''
+      responseHeaders = {
+        strictTransportSecurity: r.headers.get('strict-transport-security') || '',
+        contentSecurityPolicy: r.headers.get('content-security-policy') || '',
+        xContentTypeOptions: r.headers.get('x-content-type-options') || '',
+        xFrameOptions: r.headers.get('x-frame-options') || '',
+        referrerPolicy: r.headers.get('referrer-policy') || '',
+      }
 
-      text = await r.text()
-      if (text.length > MAX_HTML_BYTES) text = text.slice(0, MAX_HTML_BYTES)
+      if (status >= 300 && status < 400 && redirectLocation) {
+        text = ''
+        try {
+          const abs = new URL(redirectLocation, url).href
+          const norm = canonicalInternalUrl(abs, crawlBase)
+          if (norm && !abortFlag && processed.size < MAX_URLS) enqueue(norm)
+        } catch {
+          /* ignore */
+        }
+      } else {
+        text = await r.text()
+        if (text.length > MAX_HTML_BYTES) text = text.slice(0, MAX_HTML_BYTES)
+      }
 
       const head = text.slice(0, 100000)
-      const isDoc = isLikelyHtmlDocument(contentType, head)
+      const isDoc = isLikelyHtmlDocument(contentType, head) || /<html[\s>]/i.test(head)
 
       if (isDoc && status === 200) {
         title = extractTitle(text)
@@ -375,6 +397,10 @@ async function runCrawl(seedUrl) {
             scannerValues = sv
             crawlRowKind = 'html'
             if (scannerValues[6]) title = scannerValues[6] || title
+            if (redirectLocation && status >= 300 && status < 400) {
+              scannerValues[62] = redirectLocation
+              scannerValues[63] = `HTTP ${status}`
+            }
           }
         } catch (err) {
           console.warn('[crawl] scanner', url, err)
@@ -392,9 +418,11 @@ async function runCrawl(seedUrl) {
             enqueue(next)
           }
         }
-      } else if (isDoc && status >= 200 && status < 400) {
+      } else if (isDoc && status >= 200 && status < 400 && text) {
         title = extractTitle(text)
         h1Count = countH1InHtml(text)
+      } else if (status >= 300 && status < 400) {
+        crawlRowKind = 'redirect'
       }
     } catch (e) {
       error = String(e?.message || e)
@@ -412,10 +440,16 @@ async function runCrawl(seedUrl) {
             ? 'Fila resumida: el análisis detallado del HTML no produjo 72 columnas'
             : '',
       })
-      crawlRowKind = 'other'
+      crawlRowKind = status >= 300 && status < 400 ? 'redirect' : 'other'
     }
 
-    results.push({
+    if (status >= 300 && status < 400 && redirectLocation) {
+      scannerValues[62] = redirectLocation
+      scannerValues[63] = `HTTP ${status}`
+      if (crawlRowKind === 'other') crawlRowKind = 'redirect'
+    }
+
+    const resultRow = {
       url,
       status,
       title,
@@ -426,7 +460,11 @@ async function runCrawl(seedUrl) {
       crawlRowKind,
       outlinksInternal,
       outlinksExternal,
-    })
+      responseHeaders,
+      redirectLocation: redirectLocation || undefined,
+    }
+    attachSecurityToRow(resultRow, text.slice(0, 120000))
+    results.push(resultRow)
 
     const elapsedSec = Math.max(0.5, (Date.now() - crawlStartedAt) / 1000)
     const urlsPerSec = Math.round((results.length / elapsedSec) * 100) / 100

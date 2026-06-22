@@ -57,11 +57,13 @@ export function analyzeCrawlResults(results) {
   for (const [t, urls] of byTitle) {
     if (urls.length > 1) {
       issues.push({
+        issueId: 'dup_title',
         nombre: `Títulos duplicados (${urls.length} URLs): «${t.slice(0, 70)}${t.length > 70 ? '…' : ''}»`,
         tipo: 'Aviso',
         prioridad: 'Media',
         urls: urls.length,
         pct: pct(urls.length),
+        urlList: urls,
         detalle: urls.slice(0, 8).join(' | '),
       })
     }
@@ -70,11 +72,13 @@ export function analyzeCrawlResults(results) {
   for (const [h, urls] of byH1) {
     if (urls.length > 1) {
       issues.push({
+        issueId: 'dup_h1',
         nombre: `H1 duplicado (${urls.length} URLs): «${h.slice(0, 70)}${h.length > 70 ? '…' : ''}»`,
         tipo: 'Aviso',
         prioridad: 'Alta',
         urls: urls.length,
         pct: pct(urls.length),
+        urlList: urls,
         detalle: urls.slice(0, 8).join(' | '),
       })
     }
@@ -83,11 +87,13 @@ export function analyzeCrawlResults(results) {
   for (const [m, urls] of byMeta) {
     if (urls.length > 1) {
       issues.push({
+        issueId: 'dup_meta',
         nombre: `Meta description duplicada (${urls.length} URLs)`,
         tipo: 'Oportunidad',
         prioridad: 'Baja',
         urls: urls.length,
         pct: pct(urls.length),
+        urlList: urls,
         detalle: urls.slice(0, 6).join(' | '),
       })
     }
@@ -96,11 +102,13 @@ export function analyzeCrawlResults(results) {
   const multiH1Pages = pages.filter((r) => r.h1Count != null && r.h1Count > 1)
   if (multiH1Pages.length > 0) {
     issues.push({
+      issueId: 'multi_h1',
       nombre: `URLs con más de un H1: ${multiH1Pages.length}`,
       tipo: 'Problema',
       prioridad: 'Alta',
       urls: multiH1Pages.length,
       pct: pct(multiH1Pages.length),
+      urlList: multiH1Pages.map((r) => r.url),
       detalle: multiH1Pages
         .slice(0, 6)
         .map((r) => r.url)
@@ -108,25 +116,57 @@ export function analyzeCrawlResults(results) {
     })
   }
 
-  const emptyTitle = pages.filter((r) => !norm(r.scannerValues[SCAN_COL.TITLE])).length
+  const emptyTitlePages = pages.filter((r) => !norm(r.scannerValues[SCAN_COL.TITLE]))
+  const emptyTitle = emptyTitlePages.length
   if (emptyTitle > 0) {
     issues.push({
+      issueId: 'empty_title',
       nombre: `Páginas sin título (HTML): ${emptyTitle}`,
       tipo: 'Aviso',
       prioridad: 'Media',
       urls: emptyTitle,
       pct: pct(emptyTitle),
+      urlList: emptyTitlePages.map((r) => r.url),
     })
   }
 
-  const status404 = (results || []).filter((r) => r.status === 404).length
+  const status404Pages = (results || []).filter((r) => r.status === 404)
+  const status404 = status404Pages.length
   if (status404 > 0) {
     issues.push({
+      issueId: 'status_404',
       nombre: `Respuestas 404 encontradas: ${status404}`,
       tipo: 'Problema',
       prioridad: 'Alta',
       urls: status404,
       pct: pct(status404),
+      urlList: status404Pages.map((r) => r.url),
+    })
+  }
+
+  const status5xxPages = (results || []).filter((r) => r.status >= 500)
+  if (status5xxPages.length > 0) {
+    issues.push({
+      issueId: 'status_5xx',
+      nombre: `Errores 5xx: ${status5xxPages.length}`,
+      tipo: 'Problema',
+      prioridad: 'Alta',
+      urls: status5xxPages.length,
+      pct: pct(status5xxPages.length),
+      urlList: status5xxPages.map((r) => r.url),
+    })
+  }
+
+  const status4xxPages = (results || []).filter((r) => r.status >= 400 && r.status < 500)
+  if (status4xxPages.length > 0) {
+    issues.push({
+      issueId: 'status_4xx',
+      nombre: `Errores 4xx: ${status4xxPages.length}`,
+      tipo: 'Problema',
+      prioridad: 'Alta',
+      urls: status4xxPages.length,
+      pct: pct(status4xxPages.length),
+      urlList: status4xxPages.map((r) => r.url),
     })
   }
 
